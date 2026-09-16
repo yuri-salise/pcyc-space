@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/lib/db/queries/users';
-import { getDisplayedEcclesias } from '@/lib/db/queries/ecclesias';
+import { getCachedDisplayedEcclesias } from '@/lib/db/queries/cached';
 import { PageHeader } from '@/components/layout/page-header';
 import { SettingsClientView } from '@/components/domain/settings/settings-client-view';
 
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
     redirect('/login?redirectTo=/settings');
   }
 
-  const ecclesias = await getDisplayedEcclesias();
+  const ecclesias = await getCachedDisplayedEcclesias();
 
   return (
     <div className="flex flex-col w-full pb-16">

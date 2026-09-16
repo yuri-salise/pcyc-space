@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/molecules/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { Calendar, Search, Filter, X } from 'lucide-react';
 import type { Event } from '@/lib/db/schema/events';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 
 export interface EventGridProps {
   events: Event[];
@@ -23,6 +24,7 @@ export function EventGrid({
 }: EventGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Filter events based on search query and status filter
@@ -34,8 +36,8 @@ export function EventGrid({
       }
 
       // Search query filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      if (debouncedSearch.trim()) {
+        const query = debouncedSearch.toLowerCase();
         const matchesTitle = event.title.toLowerCase().includes(query);
         const matchesTheme = event.theme?.toLowerCase().includes(query);
         const matchesLocation = event.location.toLowerCase().includes(query);
@@ -47,7 +49,7 @@ export function EventGrid({
 
       return true;
     });
-  }, [events, searchQuery, statusFilter]);
+  }, [events, debouncedSearch, statusFilter]);
 
   if (!events || events.length === 0) {
     return (

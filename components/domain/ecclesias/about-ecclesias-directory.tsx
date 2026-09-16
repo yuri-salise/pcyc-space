@@ -19,6 +19,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr';
 import { motion, AnimatePresence } from 'motion/react';
 import { InteractiveCard } from '@/components/ui/interactive-card';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 
 interface AboutEcclesiasDirectoryProps {
   ecclesias: Ecclesia[];
@@ -59,6 +60,7 @@ const REGIONS: {
 export function AboutEcclesiasDirectory({ ecclesias }: AboutEcclesiasDirectoryProps) {
   const [selectedRegion, setSelectedRegion] = useState<RegionKey>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = (id: string, text: string) => {
@@ -79,7 +81,7 @@ export function AboutEcclesiasDirectory({ ecclesias }: AboutEcclesiasDirectoryPr
 
   // Sort and group ecclesias deterministically by City, then Name
   const groupedEcclesias = useMemo(() => {
-    const filterQuery = searchQuery.trim().toLowerCase();
+    const filterQuery = debouncedSearch.trim().toLowerCase();
 
     const filterFn = (ecc: Ecclesia) => {
       if (!filterQuery) return true;
@@ -106,7 +108,7 @@ export function AboutEcclesiasDirectory({ ecclesias }: AboutEcclesiasDirectoryPr
       Visayas: ecclesias.filter((e) => e.region === 'Visayas' && filterFn(e)).sort(sortFn),
       Mindanao: ecclesias.filter((e) => e.region === 'Mindanao' && filterFn(e)).sort(sortFn),
     };
-  }, [ecclesias, searchQuery]);
+  }, [ecclesias, debouncedSearch]);
 
   const totalFilteredCount =
     groupedEcclesias.Luzon.length + groupedEcclesias.Visayas.length + groupedEcclesias.Mindanao.length;

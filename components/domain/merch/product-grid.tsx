@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/molecules/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { ShoppingBag, Search, X } from 'lucide-react';
 import type { Product } from '@/lib/db/schema/products';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 
 export interface ProductGridProps {
   products: Product[];
@@ -23,6 +24,7 @@ export function ProductGrid({
 }: ProductGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   // Filter products based on search query and category filter
@@ -38,8 +40,8 @@ export function ProductGrid({
       }
 
       // Search query filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      if (debouncedSearch.trim()) {
+        const query = debouncedSearch.toLowerCase();
         const matchesName = (product.name || '').toLowerCase().includes(query);
         const matchesDesc = (product.description || '').toLowerCase().includes(query);
         const matchesCat = (product.category || '').toLowerCase().includes(query);
@@ -50,7 +52,7 @@ export function ProductGrid({
 
       return true;
     });
-  }, [products, searchQuery, categoryFilter]);
+  }, [products, debouncedSearch, categoryFilter]);
 
   if (!products || products.length === 0) {
     return (

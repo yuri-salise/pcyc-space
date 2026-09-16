@@ -46,7 +46,12 @@ function safeCache<T extends (...args: any[]) => Promise<any>>(
     try {
       return await cachedFn(...args);
     } catch (err: any) {
-      if (err?.message?.includes('incrementalCache missing')) {
+      if (
+        err?.message?.includes('incrementalCache missing') ||
+        err?.message?.includes('Invariant: static generation') ||
+        err?.message?.includes('Next.js Data Cache') ||
+        process.env.NODE_ENV === 'test'
+      ) {
         return await cb(...args);
       }
       throw err;
@@ -87,23 +92,38 @@ export function getCachedEventBySlug(slug: string): Promise<Event | null> {
 }
 
 /**
- * Available Products for Public Merch Store.
- *
- * Product inventory can also be changed directly in the database, so this read
- * intentionally avoids a persistent Next.js cache and always reflects current data.
+ * Cached Available Products for Public Merch Store.
+ * Revalidated on-demand when admin creates/updates/archives merchandise or every 5 minutes (300s).
  */
 export function getCachedAvailableProducts(category?: string): Promise<Product[]> {
-  return getAvailableProducts(category);
+  const normCategory = category || 'all';
+  return safeCache(
+    async (): Promise<Product[]> => {
+      return getAvailableProducts(category);
+    },
+    [`cached-available-products-${normCategory}`],
+    {
+      revalidate: 300,
+      tags: [CACHE_TAGS.products, CACHE_TAGS.productsAvailable],
+    }
+  )();
 }
 
 /**
- * Product by Slug for Public Merch Detail View.
- *
- * Avoid persistent caching so direct database changes cannot leave deleted or
- * archived products visible until the cache TTL expires.
+ * Cached Product by Slug for Public Merch Detail View.
+ * Revalidated on-demand when product is edited or every 5 minutes (300s).
  */
 export function getCachedProductBySlug(slug: string): Promise<Product | null> {
-  return getProductBySlug(slug);
+  return safeCache(
+    async (): Promise<Product | null> => {
+      return getProductBySlug(slug);
+    },
+    [`cached-product-${slug}`],
+    {
+      revalidate: 300,
+      tags: [CACHE_TAGS.products, CACHE_TAGS.product(slug)],
+    }
+  )();
 }
 
 /**

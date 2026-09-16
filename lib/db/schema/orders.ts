@@ -58,6 +58,7 @@ export const orders = pgTable(
     index('idx_orders_user_id').on(table.userId),
     index('idx_orders_status').on(table.status),
     index('idx_orders_created_at').on(table.createdAt),
+    index('idx_orders_user_created').on(table.userId, table.createdAt.desc()),
   ]
 );
 

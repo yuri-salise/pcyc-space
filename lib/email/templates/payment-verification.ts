@@ -9,6 +9,7 @@ export interface PaymentVerificationEmailData {
   totalAmount: number | string;
   referenceNumber?: string | null;
   adminNotes?: string | null;
+  paymentPlatform?: string;
 }
 
 export function renderPaymentVerificationEmail(data: PaymentVerificationEmailData): string {
@@ -22,6 +23,8 @@ export function renderPaymentVerificationEmail(data: PaymentVerificationEmailDat
 
   const isApproved = data.decision === 'APPROVED';
   const total = typeof data.totalAmount === 'number' ? data.totalAmount : parseFloat(data.totalAmount || '0');
+  const platform = data.paymentPlatform || (data.referenceNumber?.toUpperCase().startsWith('GCASH') ? 'GCash' : '');
+  const approvedHeadline = platform ? `✅ ${platform} Payment Approved!` : '✅ Payment Approved!';
 
   const contentHtml = isApproved
     ? `
@@ -30,7 +33,7 @@ export function renderPaymentVerificationEmail(data: PaymentVerificationEmailDat
       </p>
       <div style="background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;">
         <p style="margin: 0 0 6px 0; font-weight: 700; font-size: 15px; color: #2e7d32;">
-          ✅ Payment Approved!
+          ${approvedHeadline}
         </p>
         <p style="margin: 0; font-size: 13px; color: #1b5e20; line-height: 1.6;">
           Your payment for Order <strong>#${data.orderNumber}</strong> (${formatPHP(total)}) has been verified by our committee. Your order is now marked as <strong>PAID</strong>.

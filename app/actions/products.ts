@@ -295,6 +295,16 @@ export async function deleteProductAction(formData: FormData): Promise<AdminProd
     }
 
     try {
+      const [productRecord] = await db
+        .select({ id: products.id, slug: products.slug })
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+
+      if (!productRecord) {
+        return { success: false, error: 'Product not found.' };
+      }
+
       const [existingOrder] = await db
         .select({ id: orderItems.id })
         .from(orderItems)
@@ -312,8 +322,14 @@ export async function deleteProductAction(formData: FormData): Promise<AdminProd
         logger.info({ productId, adminId: profile.id }, 'Product deleted by administrator');
       }
 
-      invalidateCacheTag(CACHE_TAGS.products, CACHE_TAGS.productsAvailable);
+      invalidateCacheTag(
+        CACHE_TAGS.products,
+        CACHE_TAGS.productsAvailable,
+        CACHE_TAGS.product(productRecord.slug),
+        CACHE_TAGS.adminMetrics
+      );
       revalidatePath('/merch');
+      revalidatePath(`/merch/${productRecord.slug}`);
       revalidatePath('/admin/merch');
       revalidatePath('/');
       return {

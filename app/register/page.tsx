@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { RegisterForm } from '@/components/domain/auth/register-form';
-import { getDisplayedEcclesias } from '@/lib/db/queries/ecclesias';
+import { getCachedDisplayedEcclesias } from '@/lib/db/queries/cached';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 export default async function RegisterPage() {
-  const displayedEcclesias = await getDisplayedEcclesias();
+  const displayedEcclesias = await getCachedDisplayedEcclesias();
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cream">

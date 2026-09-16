@@ -12,7 +12,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { QrZoom } from '@/components/ui/qr-zoom';
 import { createOrderAction, OrderActionResult } from '@/app/actions/orders';
 import { formatCurrency } from '@/lib/utils';
-import { ProductSizeGuideModal } from '@/components/merch/product-size-guide-modal';
+import dynamic from 'next/dynamic';
 import type { Product } from '@/lib/db/schema/products';
 import type { Profile } from '@/lib/db/schema/users';
 import {
@@ -27,6 +27,11 @@ import {
   Info,
   Calendar,
 } from 'lucide-react';
+
+const ProductSizeGuideModal = dynamic(
+  () => import('@/components/merch/product-size-guide-modal').then((mod) => mod.ProductSizeGuideModal),
+  { ssr: false }
+);
 
 interface ProductOrderFormProps {
   product: Product;

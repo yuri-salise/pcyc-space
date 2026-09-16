@@ -30,6 +30,8 @@ export function renderEventRegistrationEmail(data: EventRegistrationEmailData): 
   const fee = typeof data.registrationFee === 'number' ? data.registrationFee : parseFloat(data.registrationFee || '0');
   const feeDisplay = fee === 0 ? 'FREE (No Fee)' : formatPHP(fee);
 
+  const platform = data.paymentPlatform || (data.paymentOption === 'GCASH' ? 'GCash' : 'Online Payment');
+
   const paymentBadgeColor =
     data.paymentStatus === 'CONFIRMED' || data.paymentStatus === 'PAID'
       ? '#2e7d32'
@@ -41,7 +43,7 @@ export function renderEventRegistrationEmail(data: EventRegistrationEmailData): 
     data.paymentStatus === 'CONFIRMED' || data.paymentStatus === 'PAID'
       ? 'Paid / Confirmed'
       : data.paymentStatus === 'VERIFICATION_QUEUED'
-      ? `${data.paymentPlatform || 'Online Payment'} Verification Queued`
+      ? `${platform} Verification Queued`
       : 'Payment Due at Venue Desk';
 
   const contentHtml = `

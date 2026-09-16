@@ -63,6 +63,8 @@ export function renderOrderConfirmationEmail(data: OrderConfirmationEmailData): 
     })
     .join('');
 
+  const paymentPlatform = data.paymentMethod || (data.referenceNumber?.toUpperCase().startsWith('GCASH') ? 'GCash' : 'Online Payment');
+
   const contentHtml = `
     <p style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #2c3324;">
       Dear ${prefix} ${data.userName},
@@ -105,10 +107,10 @@ export function renderOrderConfirmationEmail(data: OrderConfirmationEmailData): 
           <p style="margin: 8px 0 0 0; font-size: 13px; color: #2c3324;">
             <strong>Payment Status:</strong> 
             <span style="font-weight: 700; color: ${data.hasReceiptUploaded ? '#b78103' : '#c0392b'};">
-              ${data.hasReceiptUploaded ? `${data.paymentMethod || 'Online Payment'} Verification Queued` : `Pending ${data.paymentMethod || 'Online Payment'} Receipt Upload`}
+              ${data.hasReceiptUploaded ? `${paymentPlatform} Verification Queued` : `Pending ${paymentPlatform} Receipt Upload`}
             </span>
           </p>
-          ${data.referenceNumber ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #2c3324;"><strong>${data.paymentMethod || 'Online Payment'} Ref #:</strong> <code style="background-color: #e6dfcb; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${data.referenceNumber}</code></p>` : ''}
+          ${data.referenceNumber ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #2c3324;"><strong>${paymentPlatform} Ref #:</strong> <code style="background-color: #e6dfcb; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${data.referenceNumber}</code></p>` : ''}
         </td>
       </tr>
     </table>

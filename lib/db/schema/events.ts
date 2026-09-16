@@ -33,6 +33,7 @@ export const events = pgTable(
   },
   (table) => [
     index('idx_events_public_status').on(table.isPublished, table.status),
+    index('idx_events_feed').on(table.isPublished, table.status, table.startDate.asc()),
     index('idx_events_start_date').on(table.startDate),
     index('idx_events_created_at').on(table.createdAt),
   ]

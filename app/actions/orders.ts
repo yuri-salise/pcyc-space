@@ -9,7 +9,7 @@ import { orderSchema, isSizeAvailable } from '@/lib/validators';
 import { saveUploadedImage } from '@/lib/storage';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
-import { eq, and, sql, gte } from 'drizzle-orm';
+import { eq, and, sql, gte, inArray } from 'drizzle-orm';
 import { CACHE_TAGS, invalidateCacheTag } from '@/lib/db/queries/cached';
 import { dispatchNotification } from '@/lib/notifications/dispatcher';
 import {
@@ -356,6 +356,12 @@ export async function createOrderAction(
       });
 
       try {
+        invalidateCacheTag(
+          CACHE_TAGS.products,
+          CACHE_TAGS.productsAvailable,
+          CACHE_TAGS.product(targetProduct.slug),
+          CACHE_TAGS.adminMetrics
+        );
         revalidatePath('/portal');
         revalidatePath('/admin/orders');
         revalidatePath(`/merch/${targetProduct.slug}`);
@@ -642,6 +648,7 @@ export async function verifyReceiptAction(formData: FormData): Promise<void> {
       }
 
       try {
+        invalidateCacheTag(CACHE_TAGS.adminMetrics);
         revalidatePath('/admin/orders');
         revalidatePath('/admin');
         revalidatePath('/portal');
@@ -742,44 +749,54 @@ export async function adminBulkUpdateOrderStatusAction(
       return { success: false, error: 'No orders selected for bulk operation.' };
     }
 
-    let processedCount = 0;
+    // 1. Single atomic transaction for all order status & payment receipt updates
+    const { updatedOrders, buyerProfiles } = await db.transaction(async (tx) => {
+      // Single query bulk status update
+      const updated = await tx
+        .update(orders)
+        .set({
+          status: targetStatus,
+          updatedAt: new Date(),
+        })
+        .where(inArray(orders.id, orderIds))
+        .returning();
 
-    for (const orderId of orderIds) {
-      // Atomic: order status + receipt approval per order
-      const order = await db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(orders)
+      if (updated.length === 0) {
+        return { updatedOrders: [], buyerProfiles: [] };
+      }
+
+      // Single query bulk payment receipt approval (if PAID)
+      if (targetStatus === 'PAID') {
+        await tx
+          .update(paymentReceipts)
           .set({
-            status: targetStatus,
-            updatedAt: new Date(),
+            verificationStatus: 'APPROVED',
+            verifiedById: admin.id,
+            verifiedAt: new Date(),
+            verificationNotes: adminNotes || 'Bulk payment verification by admin',
           })
-          .where(eq(orders.id, orderId))
-          .returning();
+          .where(inArray(paymentReceipts.orderId, orderIds));
+      }
 
-        if (!updated) return null;
+      // Batch load buyer profiles in a single query (eliminates N+1 queries)
+      const userIds = Array.from(new Set(updated.map((o) => o.userId).filter(Boolean)));
+      const loadedProfiles =
+        userIds.length > 0
+          ? await tx.select().from(profiles).where(inArray(profiles.id, userIds))
+          : [];
 
-        // If target is PAID, auto-approve any pending payment receipt
-        if (targetStatus === 'PAID') {
-          await tx
-            .update(paymentReceipts)
-            .set({
-              verificationStatus: 'APPROVED',
-              verifiedById: admin.id,
-              verifiedAt: new Date(),
-              verificationNotes: adminNotes || 'Bulk payment verification by admin',
-            })
-            .where(eq(paymentReceipts.orderId, orderId));
-        }
+      return { updatedOrders: updated, buyerProfiles: loadedProfiles };
+    });
 
-        return updated;
-      });
+    const processedCount = updatedOrders.length;
+    const buyerMap = new Map(buyerProfiles.map((p) => [p.id, p]));
 
-      if (!order) continue;
-      processedCount++;
+    // 2. Dispatch notifications asynchronously with Promise.allSettled
+    await Promise.allSettled(
+      updatedOrders.map(async (order) => {
+        const buyer = buyerMap.get(order.userId);
+        if (!buyer) return;
 
-      // 3. Dispatch Notification to buyer
-      const buyer = await getUserProfileById(order.userId);
-      if (buyer) {
         let statusTitle = `Order #${order.orderNumber} Status Update`;
         let statusMessage = `Your order #${order.orderNumber} is now ${targetStatus.replace(/_/g, ' ')}.`;
 
@@ -802,8 +819,8 @@ export async function adminBulkUpdateOrderStatusAction(
           linkUrl: '/orders',
           metadata: { orderId: order.id, orderNumber: order.orderNumber, status: targetStatus },
         });
-      }
-    }
+      })
+    );
 
     logger.info(
       { adminId: admin.id, targetStatus, processedCount, totalSelected: orderIds.length },

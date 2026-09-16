@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { PriceTag } from '@/components/molecules/price-tag';
 import { Pagination } from '@/components/ui/pagination';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 import { deleteProductAction } from '@/app/actions/products';
 import type { Product } from '@/lib/db/schema/products';
 import {
@@ -32,6 +33,7 @@ const PAGE_SIZE = 8;
 export function AdminMerchList({ products }: AdminMerchListProps) {
   const [filterTab, setFilterTab] = useState<'ALL' | 'ACTIVE' | 'PREORDER' | 'APPAREL' | 'ACCESSORIES'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteProductTarget, setDeleteProductTarget] = useState<Product | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -44,24 +46,26 @@ export function AdminMerchList({ products }: AdminMerchListProps) {
   const apparelCount = products.filter((p) => (p.category || '').trim().toLowerCase() === 'apparel').length;
   const accessoriesCount = products.filter((p) => (p.category || '').trim().toLowerCase() === 'accessories').length;
 
-  // Filter list
-  const filteredProducts = products.filter((prod) => {
-    const cat = (prod.category || '').trim().toLowerCase();
-    if (filterTab === 'ACTIVE' && !prod.isAvailable) return false;
-    if (filterTab === 'PREORDER' && !prod.isPreorder) return false;
-    if (filterTab === 'APPAREL' && cat !== 'apparel') return false;
-    if (filterTab === 'ACCESSORIES' && cat !== 'accessories') return false;
+  // Filter list with debounced search query and memoization to prevent unnecessary re-filtering
+  const filteredProducts = useMemo(() => {
+    return products.filter((prod) => {
+      const cat = (prod.category || '').trim().toLowerCase();
+      if (filterTab === 'ACTIVE' && !prod.isAvailable) return false;
+      if (filterTab === 'PREORDER' && !prod.isPreorder) return false;
+      if (filterTab === 'APPAREL' && cat !== 'apparel') return false;
+      if (filterTab === 'ACCESSORIES' && cat !== 'accessories') return false;
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const name = prod.name.toLowerCase();
-      const slug = prod.slug.toLowerCase();
-      const desc = (prod.description || '').toLowerCase();
-      return name.includes(q) || slug.includes(q) || desc.includes(q);
-    }
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.toLowerCase();
+        const name = prod.name.toLowerCase();
+        const slug = prod.slug.toLowerCase();
+        const desc = (prod.description || '').toLowerCase();
+        return name.includes(q) || slug.includes(q) || desc.includes(q);
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [products, filterTab, debouncedSearch]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));

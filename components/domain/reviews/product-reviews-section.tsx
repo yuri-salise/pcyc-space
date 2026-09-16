@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { UserAvatar } from '@/components/molecules/user-avatar';
 import type { ProductReviewWithAuthor, ProductRatingSummary } from '@/lib/db/queries/reviews';
 import {
@@ -24,6 +25,8 @@ interface ProductReviewsSectionProps {
   isAuthenticated: boolean;
 }
 
+const PAGE_SIZE = 6;
+
 export function ProductReviewsSection({
   productId,
   productName,
@@ -32,12 +35,23 @@ export function ProductReviewsSection({
   isAuthenticated,
 }: ProductReviewsSectionProps) {
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { averageRating, totalReviews, distribution } = ratingSummary;
 
   const filteredReviews = filterRating
     ? reviews.filter((r) => r.rating === filterRating)
     : reviews;
+
+  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / PAGE_SIZE));
+  const activePage = Math.min(currentPage, totalPages);
+  const startIndex = (activePage - 1) * PAGE_SIZE;
+  const paginatedReviews = filteredReviews.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const handleRatingFilterChange = (rating: number | null) => {
+    setFilterRating(rating);
+    setCurrentPage(1);
+  };
 
   return (
     <section className="space-y-8 pt-12 border-t border-[#e6dfcb] dark:border-[#323d2b]">
@@ -99,7 +113,7 @@ export function ProductReviewsSection({
               <button
                 key={stars}
                 type="button"
-                onClick={() => setFilterRating(isSelected ? null : stars)}
+                onClick={() => handleRatingFilterChange(isSelected ? null : stars)}
                 className={`w-full flex items-center gap-3 text-xs group transition-opacity ${
                   filterRating && !isSelected ? 'opacity-40 hover:opacity-100' : 'opacity-100'
                 }`}
@@ -126,7 +140,7 @@ export function ProductReviewsSection({
             <div className="pt-2 text-right">
               <button
                 type="button"
-                onClick={() => setFilterRating(null)}
+                onClick={() => handleRatingFilterChange(null)}
                 className="text-[11px] font-bold text-[#9a6423] dark:text-[#f0be7c] hover:underline"
               >
                 Clear {filterRating}★ filter
@@ -156,67 +170,82 @@ export function ProductReviewsSection({
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredReviews.map((rev) => {
-              const prefix =
-                rev.user.designation === 'BROTHER'
-                  ? 'Bro.'
-                  : rev.user.designation === 'SISTER'
-                  ? 'Sis.'
-                  : 'Friend';
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {paginatedReviews.map((rev) => {
+                const prefix =
+                  rev.user.designation === 'BROTHER'
+                    ? 'Bro.'
+                    : rev.user.designation === 'SISTER'
+                    ? 'Sis.'
+                    : 'Friend';
 
-              return (
-                <Card
-                  key={rev.id}
-                  className="bg-white dark:bg-[#1b2117] border-[#e6dfcb] dark:border-[#323d2b] p-5 space-y-3.5 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        firstName={rev.user.firstName}
-                        lastName={rev.user.lastName}
-                        designation={rev.user.designation}
-                        size="sm"
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-[#2c3324] dark:text-[#fefcf1]">
-                          <span>
-                            {prefix} {rev.user.firstName} {rev.user.lastName.charAt(0)}.
-                          </span>
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-[#2e7d32] font-semibold">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Verified Buyer</span>
-                          </span>
+                return (
+                  <Card
+                    key={rev.id}
+                    className="bg-white dark:bg-[#1b2117] border-[#e6dfcb] dark:border-[#323d2b] p-5 space-y-3.5 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          firstName={rev.user.firstName}
+                          lastName={rev.user.lastName}
+                          designation={rev.user.designation}
+                          size="sm"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 font-bold text-xs text-[#2c3324] dark:text-[#fefcf1]">
+                            <span>
+                              {prefix} {rev.user.firstName} {rev.user.lastName.charAt(0)}.
+                            </span>
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-[#2e7d32] font-semibold">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>Verified Buyer</span>
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-[#707666] dark:text-[#a3ab98]">
+                            {rev.user.ecclesia || 'Philippine Ecclesias'} &bull;{' '}
+                            {new Date(rev.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
-                        <p className="text-[10px] text-[#707666] dark:text-[#a3ab98]">
-                          {rev.user.ecclesia || 'Philippine Ecclesias'} &bull;{' '}
-                          {new Date(rev.createdAt).toLocaleDateString()}
-                        </p>
+                      </div>
+
+                      {/* Stars */}
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-3.5 w-3.5 ${
+                              star <= rev.rating
+                                ? 'fill-[#e0a861] text-[#e0a861]'
+                                : 'text-[#d6ceb8] dark:text-[#3d4632]'
+                            }`}
+                          />
+                        ))}
                       </div>
                     </div>
 
-                    {/* Stars */}
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-3.5 w-3.5 ${
-                            star <= rev.rating
-                              ? 'fill-[#e0a861] text-[#e0a861]'
-                              : 'text-[#d6ceb8] dark:text-[#3d4632]'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                    {/* Review Text */}
+                    <p className="text-xs text-[#505748] dark:text-[#c4cbb8] leading-relaxed italic">
+                      &ldquo;{rev.comment}&rdquo;
+                    </p>
+                  </Card>
+                );
+              })}
+            </div>
 
-                  {/* Review Text */}
-                  <p className="text-xs text-[#505748] dark:text-[#c4cbb8] leading-relaxed italic">
-                    &ldquo;{rev.comment}&rdquo;
-                  </p>
-                </Card>
-              );
-            })}
+            {filteredReviews.length > PAGE_SIZE && (
+              <div className="pt-2 flex justify-center">
+                <Pagination
+                  currentPage={activePage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => setCurrentPage(page)}
+                  totalItems={filteredReviews.length}
+                  pageSize={PAGE_SIZE}
+                  showCount={true}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

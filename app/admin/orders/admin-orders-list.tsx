@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
 import { Modal } from '@/components/ui/modal';
 import { PriceTag } from '@/components/molecules/price-tag';
 import { Pagination } from '@/components/ui/pagination';
-import { AdminOrderDetailsModal } from '@/components/domain/orders/admin-order-details-modal';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 import { verifyReceiptAction, adminBulkUpdateOrderStatusAction } from '@/app/actions/orders';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { OrderWithDetails } from '@/lib/db/queries/orders';
@@ -28,11 +29,17 @@ import {
   Truck,
   Copy,
   Check,
-  AlertTriangle,
+  Filter,
   CheckSquare,
   Square,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
+
+const AdminOrderDetailsModal = dynamic(
+  () => import('@/components/domain/orders/admin-order-details-modal').then((mod) => mod.AdminOrderDetailsModal),
+  { ssr: false }
+);
 
 interface AdminOrdersListProps {
   orders: OrderWithDetails[];
@@ -65,6 +72,7 @@ function VerifyButton({ children, variant = 'primary', size = 'sm', className = 
 export function AdminOrdersList({ orders, paymentSettings }: AdminOrdersListProps) {
   const [filterTab, setFilterTab] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 250);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Selected Order for Receipt Lightbox Modal
@@ -92,26 +100,28 @@ export function AdminOrdersList({ orders, paymentSettings }: AdminOrdersListProp
     (o) => o.receipt?.verificationStatus === 'REJECTED'
   ).length;
 
-  // Filter list
-  const filteredOrders = orders.filter((ord) => {
-    const vStatus = ord.receipt?.verificationStatus;
+  // Filter list with debounced search query and memoization to avoid re-renders on row selection
+  const filteredOrders = useMemo(() => {
+    return orders.filter((ord) => {
+      const vStatus = ord.receipt?.verificationStatus;
 
-    if (filterTab === 'PENDING' && vStatus !== 'PENDING') return false;
-    if (filterTab === 'APPROVED' && ord.status !== 'PAID' && vStatus !== 'APPROVED') return false;
-    if (filterTab === 'REJECTED' && vStatus !== 'REJECTED') return false;
+      if (filterTab === 'PENDING' && vStatus !== 'PENDING') return false;
+      if (filterTab === 'APPROVED' && ord.status !== 'PAID' && vStatus !== 'APPROVED') return false;
+      if (filterTab === 'REJECTED' && vStatus !== 'REJECTED') return false;
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const orderNum = (ord.orderNumber || '').toLowerCase();
-      const name = (ord.shippingInfo?.recipientName || `${ord.user?.firstName || ''} ${ord.user?.lastName || ''}`).toLowerCase();
-      const contact = (ord.shippingInfo?.contactNumber || ord.user?.phoneNumber || '').toLowerCase();
-      const ref = (ord.receipt?.referenceNumber || '').toLowerCase();
-      const addr = (ord.shippingInfo?.deliveryAddress || '').toLowerCase();
-      return orderNum.includes(q) || name.includes(q) || contact.includes(q) || ref.includes(q) || addr.includes(q);
-    }
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.toLowerCase();
+        const orderNum = (ord.orderNumber || '').toLowerCase();
+        const name = (ord.shippingInfo?.recipientName || `${ord.user?.firstName || ''} ${ord.user?.lastName || ''}`).toLowerCase();
+        const contact = (ord.shippingInfo?.contactNumber || ord.user?.phoneNumber || '').toLowerCase();
+        const ref = (ord.receipt?.referenceNumber || '').toLowerCase();
+        const addr = (ord.shippingInfo?.deliveryAddress || '').toLowerCase();
+        return orderNum.includes(q) || name.includes(q) || contact.includes(q) || ref.includes(q) || addr.includes(q);
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [orders, filterTab, debouncedSearch]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));

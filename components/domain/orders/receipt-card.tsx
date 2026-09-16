@@ -5,9 +5,14 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { ReceiptUploadModal } from '@/components/domain/orders/receipt-upload-modal';
+import dynamic from 'next/dynamic';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { QrCode, Eye, UploadCloud, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+
+const ReceiptUploadModal = dynamic(
+  () => import('@/components/domain/orders/receipt-upload-modal').then((mod) => mod.ReceiptUploadModal),
+  { ssr: false }
+);
 
 export interface ReceiptCardProps {
   orderId: string;

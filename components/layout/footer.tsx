@@ -2,10 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Mail, MapPin } from 'lucide-react';
-import { getDisplayedEcclesias } from '@/lib/db/queries/ecclesias';
+import { getCachedDisplayedEcclesias } from '@/lib/db/queries/cached';
 
 export async function Footer() {
-  const ecclesiasList = await getDisplayedEcclesias();
+  const ecclesiasList = await getCachedDisplayedEcclesias();
 
   // Dynamically build location summary from live database ecclesias (Zero Mock Data)
   const placeNames = ecclesiasList

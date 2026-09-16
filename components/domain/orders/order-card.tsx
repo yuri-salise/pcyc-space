@@ -7,8 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { ReviewModal } from '@/components/domain/reviews/review-modal';
-import { ReceiptUploadModal } from '@/components/domain/orders/receipt-upload-modal';
+import dynamic from 'next/dynamic';
 import { cancelOrderAction } from '@/app/actions/orders';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderWithDetails } from '@/lib/db/queries/orders';
@@ -27,6 +26,16 @@ import {
   MapPin,
   Calendar,
 } from 'lucide-react';
+
+const ReviewModal = dynamic(
+  () => import('@/components/domain/reviews/review-modal').then((mod) => mod.ReviewModal),
+  { ssr: false }
+);
+
+const ReceiptUploadModal = dynamic(
+  () => import('@/components/domain/orders/receipt-upload-modal').then((mod) => mod.ReceiptUploadModal),
+  { ssr: false }
+);
 
 interface OrderCardProps {
   order: OrderWithDetails;

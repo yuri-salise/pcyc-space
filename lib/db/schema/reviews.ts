@@ -30,6 +30,7 @@ export const productReviews = pgTable(
   (table) => [
     unique('uq_order_product_review').on(table.orderId, table.productId),
     index('idx_product_reviews_product_hidden').on(table.productId, table.isHidden),
+    index('idx_reviews_product_visible').on(table.productId, table.isHidden, table.createdAt.desc()),
     index('idx_product_reviews_user_id').on(table.userId),
     index('idx_product_reviews_order_id').on(table.orderId),
     index('idx_product_reviews_created_at').on(table.createdAt),

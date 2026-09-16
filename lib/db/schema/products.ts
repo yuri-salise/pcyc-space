@@ -23,6 +23,7 @@ export const products = pgTable(
   },
   (table) => [
     index('idx_products_availability').on(table.isAvailable, table.isPreorder),
+    index('idx_products_catalog').on(table.isAvailable, table.category, table.createdAt.desc()),
     index('idx_products_category').on(table.category),
     index('idx_products_created_at').on(table.createdAt),
   ]

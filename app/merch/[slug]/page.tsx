@@ -1,8 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PriceTag } from '@/components/molecules/price-tag';
 import {
@@ -18,8 +16,7 @@ import { ProductImageShowcase } from '@/components/merch/product-image-showcase'
 import { ProductSizeGuideModal } from '@/components/merch/product-size-guide-modal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ArrowLeft, Tote, QrCode, Truck, ShieldCheck, PencilSimple, UserCirclePlus, SignIn, Sparkle, HandHeart, Package } from '@phosphor-icons/react/dist/ssr';
-import { ScrollReveal, StaggerContainer, StaggerItem } from '@/components/ui/scroll-reveal';
+import { Tote, Truck, ShieldCheck, PencilSimple, UserCirclePlus, SignIn, HandHeart } from '@phosphor-icons/react/dist/ssr';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 
 interface ProductDetailPageProps {
