@@ -91,23 +91,64 @@ export const changePasswordSchema = z
 // EVENT VALIDATORS
 // ==========================================
 
-export const eventSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  slug: z.string().min(3, 'Slug is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  theme: z.string().optional(),
-  bannerUrl: z.string().optional(),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().min(1, 'End date is required'),
-  location: z.string().min(3, 'Location is required'),
-  registrationFee: z.number().min(0, 'Registration fee cannot be negative').default(0),
-  isPublished: z.boolean().default(false),
-  maxAttendees: z.number().int().positive().optional(),
-  registrationDeadline: z.string().optional(),
-  status: z.enum(['UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED', 'ARCHIVED']).default('UPCOMING'),
-  schedule: z.string().optional(),
-  checklist: z.string().optional(),
-});
+export const eventSchema = z
+  .object({
+    title: z.string().min(3, 'Title must be at least 3 characters'),
+    slug: z.string().min(3, 'Slug is required'),
+    description: z.string().min(10, 'Description must be at least 10 characters'),
+    theme: z.string().optional(),
+    bannerUrl: z.string().optional(),
+    startDate: z
+      .string()
+      .min(1, 'Start date is required')
+      .refine((val) => !isNaN(new Date(val).getTime()), {
+        message: 'Start date is invalid',
+      }),
+    endDate: z
+      .string()
+      .min(1, 'End date is required')
+      .refine((val) => !isNaN(new Date(val).getTime()), {
+        message: 'End date is invalid',
+      }),
+    location: z.string().min(3, 'Location is required'),
+    registrationFee: z.number().min(0, 'Registration fee cannot be negative').default(0),
+    isPublished: z.boolean().default(false),
+    maxAttendees: z.number().int().positive().optional(),
+    registrationDeadline: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(new Date(val).getTime()), {
+        message: 'Registration deadline is invalid',
+      }),
+    status: z.enum(['UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED', 'ARCHIVED']).default('UPCOMING'),
+    schedule: z.string().optional(),
+    checklist: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
+      return end.getTime() >= start.getTime();
+    },
+    {
+      message: 'End date & time cannot be earlier than start date & time',
+      path: ['endDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.registrationDeadline) return true;
+      const start = new Date(data.startDate);
+      const deadline = new Date(data.registrationDeadline);
+      if (isNaN(start.getTime()) || isNaN(deadline.getTime())) return true;
+      return deadline.getTime() <= start.getTime();
+    },
+    {
+      message: 'Registration deadline cannot be after the event start date',
+      path: ['registrationDeadline'],
+    }
+  );
 
 export const eventRegistrationSchema = z
   .object({

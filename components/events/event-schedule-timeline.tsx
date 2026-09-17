@@ -4,75 +4,146 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sun, Moon, Sparkle, BookOpen, MusicNotes, UsersThree, Coffee, Heart } from '@phosphor-icons/react';
 import { InteractiveCard } from '@/components/ui/interactive-card';
-
-const SAMPLE_SCHEDULE = [
-  {
-    day: 'Day 01',
-    title: 'Arrival & Welcome Praise',
-    subtitle: 'Registration, lodging assignment, and opening evening praise',
-    events: [
-      { time: '1:00 PM – 4:00 PM', title: 'Delegate Arrival & Room Check-in', desc: 'Welcome desk open for registration badges, study binders, and lodging keys.', icon: Coffee },
-      { time: '5:30 PM – 6:30 PM', title: 'Welcome Fellowship Dinner', desc: 'Communal dinner and meet-and-greet with brothers, sisters, and visiting friends.', icon: UsersThree },
-      { time: '7:00 PM – 9:00 PM', title: 'Opening Camp Lecture & Theme Introduction', desc: 'First keynote address exploring our theme in Scripture, followed by evening hymns.', icon: BookOpen },
-      { time: '9:30 PM', title: 'Evening Fellowship Circle & Curfew', desc: 'Informal discussions, hot chocolate, and lights-out preparation.', icon: Moon },
-    ],
-  },
-  {
-    day: 'Day 02',
-    title: 'Study, Youth Choir & Recreation',
-    subtitle: 'Intensive scriptural workshops, team sports, and choral praise',
-    events: [
-      { time: '7:30 AM – 8:30 AM', title: 'Morning Praise & Breakfast', desc: 'Devotional reading and breakfast.', icon: Sun },
-      { time: '9:00 AM – 11:30 AM', title: 'Interactive Bible Lecture & Exhortation', desc: 'Deep-dive textual study with Q&A session for young people and seekers.', icon: BookOpen },
-      { time: '2:00 PM – 4:30 PM', title: 'Afternoon Sports & Team Fellowship', desc: 'Volleyball, basketball, team quizzes, and recreation on camp grounds.', icon: UsersThree },
-      { time: '7:00 PM – 9:00 PM', title: 'Youth Choral Singing & Campfire Devotion', desc: 'Learning multi-part Christadelphian anthems and outdoor praise circle.', icon: MusicNotes },
-    ],
-  },
-  {
-    day: 'Day 03',
-    title: 'Memorial Service & Safe Dismissal',
-    subtitle: 'Sunday Breaking of Bread memorial, final study, and departure',
-    events: [
-      { time: '8:00 AM – 9:00 AM', title: 'Breakfast & Packing', desc: 'Room clearance and baggage storage before Sunday memorial service.', icon: Sun },
-      { time: '9:30 AM – 11:30 AM', title: 'Breaking of Bread Memorial Service', desc: 'Solemn memorial meeting, communion, and Sunday address.', icon: Heart },
-      { time: '12:00 PM – 1:30 PM', title: 'Farewell Fellowship Lunch', desc: 'Final group photographs, contact exchanges, and travel prayer.', icon: UsersThree },
-      { time: '2:00 PM', title: 'Safe Travels & Dismissal', desc: 'Coordinated buses and ferry drop-offs for island delegates.', icon: Sparkle },
-    ],
-  },
-];
+import { formatDateForDateInput } from '@/lib/utils';
 
 export interface ScheduleItem {
+  day?: string;
   time: string;
   title: string;
   description: string;
 }
 
-export function EventScheduleTimeline({ schedule }: { schedule?: ScheduleItem[] | null }) {
+interface EventScheduleTimelineProps {
+  schedule?: ScheduleItem[] | string | null;
+  startDate?: Date | string;
+}
+
+/**
+ * Parses time string (e.g. "8:30 AM – 11:30 AM", "1:00 PM", "14:30") into minutes from midnight for chronological ordering.
+ */
+function parseTimeMinutes(timeStr: string): number {
+  if (!timeStr) return 9999;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return 9999;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridian = match[3]?.toUpperCase();
+
+  if (meridian === 'PM' && hours < 12) hours += 12;
+  if (meridian === 'AM' && hours === 12) hours = 0;
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * Intelligently assigns appropriate spiritual and fellowship icons based on session content.
+ */
+function getSessionIcon(title: string, desc: string, time: string) {
+  const text = `${title} ${desc}`.toLowerCase();
+  if (/breakfast|lunch|dinner|meal|coffee|snack|tea|food|refreshment/i.test(text)) return Coffee;
+  if (/praise|hymn|sing|choir|song|music|anthem/i.test(text)) return MusicNotes;
+  if (/memorial|bread|communion|worship|breaking of bread/i.test(text)) return Heart;
+  if (/study|lecture|bible|exhort|scriptur|class|textual|q&a|workshop/i.test(text)) return BookOpen;
+  if (/sport|game|fellowship|recreation|volleyball|basketball|circle|trivia|activity/i.test(text)) return UsersThree;
+  if (/morning|sunrise/i.test(text) || /\bAM\b/i.test(time)) return Sun;
+  if (/night|evening|curfew|lights out|campfire/i.test(text) || /\bPM\b/i.test(time)) return Moon;
+  return Sparkle;
+}
+
+function getDayDateSubtitle(startDate: Date | string | undefined, dayIndex: number): string | null {
+  if (!startDate) return null;
+  const dateStr = formatDateForDateInput(startDate);
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+
+  const [sy, sm, sd] = dateStr.split('-').map(Number);
+  const target = new Date(Date.UTC(sy, sm - 1, sd + dayIndex));
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(target);
+}
+
+export function EventScheduleTimeline({ schedule, startDate }: EventScheduleTimelineProps) {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
 
-  // If schedule is explicitly passed as an empty array, render clean notice
-  const isExplicitlyEmpty = Array.isArray(schedule) && schedule.length === 0;
+  const parsedSchedule = React.useMemo<ScheduleItem[] | null>(() => {
+    if (Array.isArray(schedule)) return schedule;
+    if (typeof schedule === 'string') {
+      try {
+        const parsed = JSON.parse(schedule);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
+    }
+    return null;
+  }, [schedule]);
 
-  // If dynamic schedule is provided with items, render it
-  const hasDynamicSchedule = Array.isArray(schedule) && schedule.length > 0;
+  const hasDynamicSchedule = Array.isArray(parsedSchedule) && parsedSchedule.length > 0;
 
-  const displaySchedule = hasDynamicSchedule
-    ? [
+  const displaySchedule = React.useMemo(() => {
+    if (!hasDynamicSchedule || !parsedSchedule) {
+      return [];
+    }
+
+    const hasDays = parsedSchedule.some((s) => s.day && s.day.trim().length > 0);
+    if (!hasDays) {
+      const dateStr = getDayDateSubtitle(startDate, 0);
+      const sortedEvents = [...parsedSchedule].sort((a, b) => parseTimeMinutes(a.time) - parseTimeMinutes(b.time));
+      return [
         {
           day: 'Itinerary',
-          title: 'Event Schedule & Activities',
-          subtitle: 'Official itinerary and fellowship timetable',
-          events: schedule.map((s) => ({
+          title: 'Event Schedule & Timetable',
+          subtitle: dateStr ? `${dateStr} • Official gathering sessions` : 'Official gathering sessions and timetable',
+          events: sortedEvents.map((s) => ({
             time: s.time,
             title: s.title,
             desc: s.description,
-            icon: Sparkle,
+            icon: getSessionIcon(s.title, s.description, s.time),
           })),
         },
-      ]
-    : SAMPLE_SCHEDULE;
+      ];
+    }
 
-  const activeDay = displaySchedule[activeDayIndex] || displaySchedule[0];
+    // Group by Day key preserving numerical/natural order
+    const dayMap = new Map<string, ScheduleItem[]>();
+    for (const item of parsedSchedule) {
+      const dayKey = (item.day && item.day.trim()) || 'Day 01';
+      if (!dayMap.has(dayKey)) {
+        dayMap.set(dayKey, []);
+      }
+      dayMap.get(dayKey)!.push(item);
+    }
+
+    const sortedDayKeys = Array.from(dayMap.keys()).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    );
+
+    return sortedDayKeys.map((dayKey, idx) => {
+      const items = dayMap.get(dayKey)!;
+      // Sort sessions chronologically within each day
+      const sortedItems = [...items].sort((a, b) => parseTimeMinutes(a.time) - parseTimeMinutes(b.time));
+      const match = dayKey.match(/\d+/);
+      const dayOffset = match ? Math.max(0, parseInt(match[0], 10) - 1) : idx;
+      const dateStr = getDayDateSubtitle(startDate, dayOffset);
+
+      return {
+        day: dayKey,
+        title: `${dayKey} Itinerary`,
+        subtitle: dateStr ? `${dateStr} • Official gathering sessions` : `Official gathering sessions for ${dayKey}`,
+        events: sortedItems.map((s) => ({
+          time: s.time,
+          title: s.title,
+          desc: s.description,
+          icon: getSessionIcon(s.title, s.description, s.time),
+        })),
+      };
+    });
+  }, [hasDynamicSchedule, parsedSchedule, startDate]);
+
+  const safeDayIndex = activeDayIndex < displaySchedule.length ? activeDayIndex : 0;
+  const activeDay = displaySchedule[safeDayIndex] || displaySchedule[0];
 
   return (
     <InteractiveCard className="p-7 sm:p-10 rounded-[2.5rem] bg-white dark:bg-[#1b2117] border border-[#e6dfcb] dark:border-[#323d2b] shadow-xl space-y-8">
@@ -88,7 +159,7 @@ export function EventScheduleTimeline({ schedule }: { schedule?: ScheduleItem[] 
         </div>
 
         {/* Day Tab Pills */}
-        {!isExplicitlyEmpty && (
+        {hasDynamicSchedule && displaySchedule.length > 1 && (
           <div className="flex items-center gap-1.5 p-1 bg-[#f8f4e3] dark:bg-[#131710] rounded-2xl">
             {displaySchedule.map((day, idx) => {
               const isSelected = activeDayIndex === idx;
@@ -118,7 +189,7 @@ export function EventScheduleTimeline({ schedule }: { schedule?: ScheduleItem[] 
         )}
       </div>
 
-      {isExplicitlyEmpty ? (
+      {!hasDynamicSchedule || !activeDay ? (
         <div className="p-8 text-center rounded-2xl bg-[#f8f4e3]/40 dark:bg-[#131710]/40 border border-[#e6dfcb] dark:border-[#323d2b] space-y-2">
           <p className="font-serif font-bold text-lg text-[#2c3324] dark:text-[#fefcf1]">
             Itinerary Under Preparation

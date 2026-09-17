@@ -24,11 +24,43 @@ export function formatPHP(amount: number | string): string {
 export const formatCurrency = formatPHP;
 
 /**
+ * Safely parses any date input into a Date object anchored to Philippine Standard Time (UTC+8).
+ * Prevents host/client environment timezone drift (e.g. UTC, US Pacific) from shifting day or hour boundaries.
+ */
+export function parsePhilippineDateObject(d: Date | string): Date {
+  if (d instanceof Date) return d;
+  if (typeof d !== 'string') return new Date(NaN);
+  const trimmed = d.trim();
+  if (!trimmed) return new Date(NaN);
+
+  // Date-only string (YYYY-MM-DD): anchor to midnight in Manila (+08:00)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return new Date(`${trimmed}T00:00:00+08:00`);
+  }
+
+  // If already contains timezone offset (Z or +/-HH:MM after a time component)
+  if (trimmed.endsWith('Z') || /[T ]\d{2}:\d{2}.*(?:[+-]\d{2}(?::?\d{2})?)$/.test(trimmed)) {
+    return new Date(trimmed);
+  }
+
+  // ISO or space-separated date & time without offset: append +08:00
+  const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?)$/);
+  if (match) {
+    const time = match[2].length === 5 ? `${match[2]}:00` : match[2];
+    return new Date(`${match[1]}T${time}+08:00`);
+  }
+
+  return new Date(trimmed);
+}
+
+/**
  * Formats a Date object or ISO string into a human-readable Philippine date & time format.
  */
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parsePhilippineDateObject(date);
+  if (isNaN(d.getTime())) return '';
   return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(d);
@@ -38,8 +70,10 @@ export function formatDate(date: Date | string): string {
  * Formats only the date portion (e.g. "Aug 15, 2026").
  */
 export function formatDateOnly(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parsePhilippineDateObject(date);
+  if (isNaN(d.getTime())) return '';
   return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
     dateStyle: 'medium',
   }).format(d);
 }
@@ -48,47 +82,79 @@ export function formatDateOnly(date: Date | string): string {
  * Formats only the time portion (e.g. "8:00 AM").
  */
 export function formatTimeOnly(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parsePhilippineDateObject(date);
+  if (isNaN(d.getTime())) return '';
   return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
     timeStyle: 'short',
   }).format(d);
 }
 
 /**
- * Formats a full event schedule with start and end times cleanly.
+ * Formats a full event schedule with start and end times cleanly in Philippine timezone.
  * @example Same day: "Aug 15, 2026 • 8:00 AM – 5:00 PM"
  * @example Multi day: "Aug 15, 2026, 8:00 AM – Aug 17, 2026, 5:00 PM"
  */
 export function formatEventSchedule(startDate: Date | string, endDate: Date | string): string {
-  const s = typeof startDate === 'string' ? new Date(startDate) : startDate;
-  const e = typeof endDate === 'string' ? new Date(endDate) : endDate;
+  const s = parsePhilippineDateObject(startDate);
+  const e = parsePhilippineDateObject(endDate);
 
-  const isSameDay =
-    s.getFullYear() === e.getFullYear() &&
-    s.getMonth() === e.getMonth() &&
-    s.getDate() === e.getDate();
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return '';
+
+  const sDateStr = formatDateForDateInput(s);
+  const eDateStr = formatDateForDateInput(e);
+  const isSameDay = sDateStr === eDateStr;
 
   if (isSameDay) {
-    return `${formatDateOnly(s)} • ${formatTimeOnly(s)} – ${formatTimeOnly(e)}`;
+    const sTime = formatTimeOnly(s);
+    const eTime = formatTimeOnly(e);
+    if (sTime === eTime) {
+      return `${formatDateOnly(s)} • ${sTime}`;
+    }
+    return `${formatDateOnly(s)} • ${sTime} – ${eTime}`;
   }
 
   return `${formatDate(s)} – ${formatDate(e)}`;
 }
 
 /**
- * Helper for HTML date inputs (YYYY-MM-DD)
+ * Helper for HTML date inputs (YYYY-MM-DD) in Philippine Timezone
  */
 export function formatDateForDateInput(d: Date | string): string {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-CA');
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    return d.trim();
+  }
+  const date = parsePhilippineDateObject(d);
+  if (isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
 }
 
 /**
- * Helper for HTML time inputs (HH:mm)
+ * Helper for HTML time inputs (HH:mm) in Philippine Timezone
  */
 export function formatTimeForTimeInput(d: Date | string): string {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return isNaN(date.getTime()) ? '08:00' : date.toTimeString().slice(0, 5);
+  if (!d) return '08:00';
+  if (typeof d === 'string') {
+    const trimmed = d.trim();
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+      const parts = trimmed.split(':');
+      return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+    }
+  }
+
+  const date = parsePhilippineDateObject(d);
+  if (isNaN(date.getTime())) return '08:00';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Manila',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
 }
 
 /**
