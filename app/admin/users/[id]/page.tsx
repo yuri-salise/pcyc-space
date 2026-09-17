@@ -8,18 +8,13 @@ import { getAllEcclesias } from '@/lib/db/queries/ecclesias';
 import { EditUserForm } from './edit-user-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { maskEmail, maskPhoneNumber } from '@/lib/security/privacy';
+import { maskEmail } from '@/lib/security/privacy';
+import { formatDateOnly } from '@/lib/utils';
 import {
   ArrowLeft,
   Calendar,
   ShoppingBag,
-  History,
   Shield,
-  User,
-  Building,
-  Mail,
-  Phone,
-  Lock,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -136,7 +131,7 @@ export default async function AdminUserDetailPage({
                       <div>
                         <p className="font-bold text-[#2c3324] dark:text-[#fefcf1]">{event.title}</p>
                         <p className="text-[11px] text-[#707666] dark:text-[#a3ab98] mt-0.5">
-                          {event.location} &bull; {new Date(event.startDate).toLocaleDateString()}
+                          {event.location} &bull; {formatDateOnly(event.startDate)}
                         </p>
                       </div>
                       <Badge

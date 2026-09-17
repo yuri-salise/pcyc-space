@@ -16,13 +16,57 @@ import {
   renderEventRegistrationEmail,
   renderAdminEventRegistrationAlert,
 } from '@/lib/email/templates/event-registration';
+import { formatDateForDateInput, formatTimeForTimeInput } from '@/lib/utils';
+
+export interface EventFormPayload {
+  title?: string;
+  slug?: string;
+  theme?: string;
+  description?: string;
+  bannerUrl?: string;
+  registrationFee?: number;
+  startDate?: string;
+  startTime?: string;
+  endDate?: string;
+  endTime?: string;
+  location?: string;
+  maxAttendees?: number;
+  registrationDeadline?: string;
+  isPublished?: boolean;
+  status?: string;
+  schedule?: string;
+  checklist?: string;
+}
 
 export interface AdminEventActionState {
   success: boolean;
   message?: string;
   error?: string;
   fieldErrors?: Record<string, string[]>;
-  payload?: any;
+  payload?: EventFormPayload;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = (error as { message: unknown }).message;
+    if (typeof msg === 'string') return msg;
+  }
+  return String(error || 'An unexpected error occurred.');
+}
+
+function isNextError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const candidate = err as { digest?: unknown; message?: unknown };
+  const digest = typeof candidate.digest === 'string' ? candidate.digest : '';
+  const message = typeof candidate.message === 'string' ? candidate.message : '';
+  return (
+    digest === 'DYNAMIC_SERVER_USAGE' ||
+    message.includes('DYNAMIC_SERVER_USAGE') ||
+    digest.startsWith('NEXT_') ||
+    message === 'NEXT_REDIRECT'
+  );
 }
 
 export async function confirmEventRegistrationPaymentAction(
@@ -117,9 +161,44 @@ async function reviewEventRegistrationPaymentAction(
         ? 'Venue payment confirmed.'
         : 'Payment receipt confirmed.',
     };
-  } catch (error: any) {
-    logger.error({ error: error?.message, registrationId, eventId }, 'Failed to confirm event registration payment');
+  } catch (error) {
+    logger.error({ error: getErrorMessage(error), registrationId, eventId }, 'Failed to confirm event registration payment');
     return { success: false, error: 'Unable to confirm this attendee payment.' };
+  }
+}
+
+/**
+ * Normalizes input date and time into a precise Philippine Standard Time (UTC+8) ISO-8601 string.
+ */
+function parsePhilippineDateTime(dateStr: string, timeStr?: string): string {
+  if (!dateStr) return '';
+
+  const cleanDate = formatDateForDateInput(dateStr);
+  if (!cleanDate) return '';
+
+  let rawTime = (timeStr || '').trim();
+  if (!rawTime && dateStr.includes('T')) {
+    rawTime = formatTimeForTimeInput(dateStr);
+  }
+  if (!rawTime) {
+    rawTime = '00:00';
+  }
+
+  const cleanTime = rawTime.slice(0, 5) || '00:00';
+  const normalizedTime = cleanTime.length === 5 ? `${cleanTime}:00` : cleanTime;
+  return `${cleanDate}T${normalizedTime}+08:00`;
+}
+
+/**
+ * Safely parses JSON string representation of schedule or checklist.
+ */
+function parseJsonArraySafe(jsonStr?: string | null): unknown[] | null {
+  if (!jsonStr) return null;
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
   }
 }
 
@@ -161,33 +240,32 @@ export async function createEventAction(
     const startTimeStr = (formData.get('startTime') as string) || '08:00';
     const endDateStr = (formData.get('endDate') as string) || '';
     const endTimeStr = (formData.get('endTime') as string) || '17:00';
+    const registrationDeadlineStr = (formData.get('registrationDeadline') as string) || '';
 
-    let combinedStart = startDateStr;
-    if (startDateStr && !startDateStr.includes('T')) {
-      combinedStart = `${startDateStr}T${startTimeStr}`;
-    }
+    const combinedStart = parsePhilippineDateTime(startDateStr, startTimeStr);
+    const combinedEnd = parsePhilippineDateTime(endDateStr, endTimeStr);
+    const combinedDeadline = registrationDeadlineStr
+      ? parsePhilippineDateTime(registrationDeadlineStr, '23:59')
+      : undefined;
 
-    let combinedEnd = endDateStr;
-    if (endDateStr && !endDateStr.includes('T')) {
-      combinedEnd = `${endDateStr}T${endTimeStr}`;
-    }
-
-    const rawData = {
-      title: formData.get('title'),
-      slug: formData.get('slug'),
-      theme: formData.get('theme') || undefined,
-      description: formData.get('description'),
-      bannerUrl: bannerUrl,
+    const rawData: EventFormPayload = {
+      title: (formData.get('title') as string) || undefined,
+      slug: (formData.get('slug') as string) || undefined,
+      theme: (formData.get('theme') as string) || undefined,
+      description: (formData.get('description') as string) || undefined,
+      bannerUrl: bannerUrl || undefined,
       registrationFee: formData.get('registrationFee') ? Number(formData.get('registrationFee')) : 0,
       startDate: combinedStart,
+      startTime: startTimeStr,
       endDate: combinedEnd,
-      location: formData.get('location'),
+      endTime: endTimeStr,
+      location: (formData.get('location') as string) || undefined,
       maxAttendees: formData.get('maxAttendees') ? Number(formData.get('maxAttendees')) : undefined,
-      registrationDeadline: formData.get('registrationDeadline') || undefined,
+      registrationDeadline: combinedDeadline,
       isPublished: formData.get('isPublished') === 'on' || formData.get('isPublished') === 'true',
       status: (formData.get('status') as string) || 'UPCOMING',
-      schedule: formData.get('schedule') || undefined,
-      checklist: formData.get('checklist') || undefined,
+      schedule: (formData.get('schedule') as string) || undefined,
+      checklist: (formData.get('checklist') as string) || undefined,
     };
 
     const parsed = eventSchema.safeParse(rawData);
@@ -215,16 +293,17 @@ export async function createEventAction(
         registrationDeadline: parsed.data.registrationDeadline ? new Date(parsed.data.registrationDeadline) : null,
         isPublished: parsed.data.isPublished ?? true,
         status: (parsed.data.status as 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED') || 'UPCOMING',
-        schedule: parsed.data.schedule ? JSON.parse(parsed.data.schedule) : null,
-        checklist: parsed.data.checklist ? JSON.parse(parsed.data.checklist) : null,
+        schedule: parseJsonArraySafe(parsed.data.schedule),
+        checklist: parseJsonArraySafe(parsed.data.checklist),
       });
 
       logger.info({ slug: parsed.data.slug, adminId: profile.id }, 'New event created by admin');
-    } catch (error: any) {
-      logger.error({ error: error?.message }, 'Failed to insert event into database');
+    } catch (error) {
+      const message = getErrorMessage(error);
+      logger.error({ error: message }, 'Failed to insert event into database');
       return {
         success: false,
-        error: error?.message?.includes('duplicate key')
+        error: message.includes('duplicate key')
           ? 'An event with this URL slug already exists. Please choose a unique slug.'
           : 'Failed to create event. Please try again.',
       };
@@ -235,24 +314,20 @@ export async function createEventAction(
       revalidatePath('/events');
       revalidatePath('/admin/events');
       revalidatePath('/');
-    } catch (cacheErr: any) {
-      logger.warn({ error: cacheErr?.message }, 'Cache revalidation warning');
+    } catch (cacheErr) {
+      logger.warn({ error: getErrorMessage(cacheErr) }, 'Cache revalidation warning');
     }
 
     redirect('/admin/events');
-  } catch (err: any) {
-    if (
-      err?.digest === 'DYNAMIC_SERVER_USAGE' ||
-      err?.message?.includes('DYNAMIC_SERVER_USAGE') ||
-      err?.digest?.startsWith('NEXT_') ||
-      err?.message === 'NEXT_REDIRECT'
-    ) {
+  } catch (err) {
+    if (isNextError(err)) {
       throw err;
     }
-    logger.error({ error: err?.message || err }, 'Unhandled error in createEventAction');
+    const message = getErrorMessage(err);
+    logger.error({ error: message }, 'Unhandled error in createEventAction');
     return {
       success: false,
-      error: err?.message || 'An unexpected error occurred. Please try again.',
+      error: message || 'An unexpected error occurred. Please try again.',
     };
   }
 }
@@ -308,33 +383,32 @@ export async function updateEventAction(
     const startTimeStr = (formData.get('startTime') as string) || '08:00';
     const endDateStr = (formData.get('endDate') as string) || '';
     const endTimeStr = (formData.get('endTime') as string) || '17:00';
+    const registrationDeadlineStr = (formData.get('registrationDeadline') as string) || '';
 
-    let combinedStart = startDateStr;
-    if (startDateStr && !startDateStr.includes('T')) {
-      combinedStart = `${startDateStr}T${startTimeStr}`;
-    }
+    const combinedStart = parsePhilippineDateTime(startDateStr, startTimeStr);
+    const combinedEnd = parsePhilippineDateTime(endDateStr, endTimeStr);
+    const combinedDeadline = registrationDeadlineStr
+      ? parsePhilippineDateTime(registrationDeadlineStr, '23:59')
+      : undefined;
 
-    let combinedEnd = endDateStr;
-    if (endDateStr && !endDateStr.includes('T')) {
-      combinedEnd = `${endDateStr}T${endTimeStr}`;
-    }
-
-    const rawData = {
-      title: formData.get('title'),
-      slug: formData.get('slug'),
-      theme: formData.get('theme') || undefined,
-      description: formData.get('description'),
-      bannerUrl: bannerUrl,
+    const rawData: EventFormPayload = {
+      title: (formData.get('title') as string) || undefined,
+      slug: (formData.get('slug') as string) || undefined,
+      theme: (formData.get('theme') as string) || undefined,
+      description: (formData.get('description') as string) || undefined,
+      bannerUrl: bannerUrl || undefined,
       startDate: combinedStart,
+      startTime: startTimeStr,
       endDate: combinedEnd,
-      location: formData.get('location'),
+      endTime: endTimeStr,
+      location: (formData.get('location') as string) || undefined,
       registrationFee: formData.get('registrationFee') ? Number(formData.get('registrationFee')) : 0,
       maxAttendees: formData.get('maxAttendees') ? Number(formData.get('maxAttendees')) : undefined,
-      registrationDeadline: formData.get('registrationDeadline') || undefined,
+      registrationDeadline: combinedDeadline,
       isPublished: formData.get('isPublished') === 'on' || formData.get('isPublished') === 'true',
       status: (formData.get('status') as string) || 'UPCOMING',
-      schedule: formData.get('schedule') || undefined,
-      checklist: formData.get('checklist') || undefined,
+      schedule: (formData.get('schedule') as string) || undefined,
+      checklist: (formData.get('checklist') as string) || undefined,
     };
 
     const parsed = eventSchema.safeParse(rawData);
@@ -344,6 +418,7 @@ export async function updateEventAction(
         success: false,
         error: 'Please correct the highlighted errors in the form.',
         fieldErrors: parsed.error.flatten().fieldErrors,
+        payload: rawData,
       };
     }
 
@@ -365,8 +440,8 @@ export async function updateEventAction(
           registrationDeadline: parsed.data.registrationDeadline ? new Date(parsed.data.registrationDeadline) : null,
           isPublished: parsed.data.isPublished ?? true,
           status: (parsed.data.status as 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED') || 'UPCOMING',
-          schedule: parsed.data.schedule ? JSON.parse(parsed.data.schedule) : null,
-          checklist: parsed.data.checklist ? JSON.parse(parsed.data.checklist) : null,
+          schedule: parseJsonArraySafe(parsed.data.schedule),
+          checklist: parseJsonArraySafe(parsed.data.checklist),
           updatedAt: new Date(),
         })
         .where(eq(events.id, eventId));
@@ -380,44 +455,47 @@ export async function updateEventAction(
         },
         'Event successfully updated by administrator'
       );
-    } catch (error: any) {
-      logger.error({ error: error?.message, eventId }, 'Failed to update event in database');
+    } catch (error) {
+      const message = getErrorMessage(error);
+      logger.error({ error: message, eventId }, 'Failed to update event in database');
       return {
         success: false,
-        error: error?.message?.includes('duplicate key')
+        error: message.includes('duplicate key')
           ? 'An event with this URL slug already exists. Please choose a unique slug.'
           : 'Failed to update event. Please try again.',
       };
     }
 
     try {
+      const existingSlug = (formData.get('existingSlug') as string) || parsed.data.slug;
       invalidateCacheTag(
         CACHE_TAGS.events,
         CACHE_TAGS.eventsPublished,
-        CACHE_TAGS.event(parsed.data.slug)
+        CACHE_TAGS.event(parsed.data.slug),
+        ...(existingSlug !== parsed.data.slug ? [CACHE_TAGS.event(existingSlug)] : [])
       );
       revalidatePath('/events');
       revalidatePath(`/events/${parsed.data.slug}`);
+      if (existingSlug !== parsed.data.slug) {
+        revalidatePath(`/events/${existingSlug}`);
+      }
       revalidatePath('/admin/events');
+      revalidatePath(`/admin/events/${eventId}/edit`);
       revalidatePath('/');
-    } catch (cacheErr: any) {
-      logger.warn({ error: cacheErr?.message }, 'Cache revalidation warning');
+    } catch (cacheErr) {
+      logger.warn({ error: getErrorMessage(cacheErr) }, 'Cache revalidation warning');
     }
 
     redirect('/admin/events');
-  } catch (err: any) {
-    if (
-      err?.digest === 'DYNAMIC_SERVER_USAGE' ||
-      err?.message?.includes('DYNAMIC_SERVER_USAGE') ||
-      err?.digest?.startsWith('NEXT_') ||
-      err?.message === 'NEXT_REDIRECT'
-    ) {
+  } catch (err) {
+    if (isNextError(err)) {
       throw err;
     }
-    logger.error({ error: err?.message || err }, 'Unhandled error in updateEventAction');
+    const message = getErrorMessage(err);
+    logger.error({ error: message }, 'Unhandled error in updateEventAction');
     return {
       success: false,
-      error: err?.message || 'An unexpected error occurred. Please try again.',
+      error: message || 'An unexpected error occurred. Please try again.',
     };
   }
 }
@@ -448,11 +526,11 @@ export async function deleteEventAction(formData: FormData): Promise<void> {
       revalidatePath('/admin/events');
       revalidatePath('/portal');
       revalidatePath('/');
-    } catch (error: any) {
-      logger.error({ error: error?.message, eventId }, 'Failed to delete event and attendees');
+    } catch (error) {
+      logger.error({ error: getErrorMessage(error), eventId }, 'Failed to delete event and attendees');
     }
-  } catch (err: any) {
-    logger.error({ error: err?.message || err }, 'Unhandled error in deleteEventAction');
+  } catch (err) {
+    logger.error({ error: getErrorMessage(err) }, 'Unhandled error in deleteEventAction');
   }
 }
 
@@ -484,11 +562,11 @@ export async function archiveEventAction(formData: FormData): Promise<void> {
       revalidatePath('/events');
       revalidatePath('/admin/events');
       revalidatePath('/');
-    } catch (error: any) {
-      logger.error({ error: error?.message, eventId }, 'Failed to archive event');
+    } catch (error) {
+      logger.error({ error: getErrorMessage(error), eventId }, 'Failed to archive event');
     }
-  } catch (err: any) {
-    logger.error({ error: err?.message || err }, 'Unhandled error in archiveEventAction');
+  } catch (err) {
+    logger.error({ error: getErrorMessage(err) }, 'Unhandled error in archiveEventAction');
   }
 }
 
@@ -520,11 +598,11 @@ export async function unarchiveEventAction(formData: FormData): Promise<void> {
       revalidatePath('/events');
       revalidatePath('/admin/events');
       revalidatePath('/');
-    } catch (error: any) {
-      logger.error({ error: error?.message, eventId }, 'Failed to unarchive event');
+    } catch (error) {
+      logger.error({ error: getErrorMessage(error), eventId }, 'Failed to unarchive event');
     }
-  } catch (err: any) {
-    logger.error({ error: err?.message || err }, 'Unhandled error in unarchiveEventAction');
+  } catch (err) {
+    logger.error({ error: getErrorMessage(err) }, 'Unhandled error in unarchiveEventAction');
   }
 }
 
@@ -614,9 +692,9 @@ export async function registerForEventAction(
     const paymentSettings = await getPaymentSettings();
 
     // 3. Payment Processing
-    let finalPaymentOption = feeNum === 0 ? 'FREE' : paymentOption;
-    let finalPaymentStatus = feeNum === 0 ? 'FREE' : (paymentOption === 'GCASH' ? 'VERIFICATION_QUEUED' : 'UNPAID');
-    let finalRegStatus = feeNum === 0 ? 'CONFIRMED' : (paymentOption === 'GCASH' ? 'VERIFICATION_QUEUED' : 'CONFIRMED');
+    const finalPaymentOption = feeNum === 0 ? 'FREE' : paymentOption;
+    const finalPaymentStatus = feeNum === 0 ? 'FREE' : (paymentOption === 'GCASH' ? 'VERIFICATION_QUEUED' : 'UNPAID');
+    const finalRegStatus = feeNum === 0 ? 'CONFIRMED' : (paymentOption === 'GCASH' ? 'VERIFICATION_QUEUED' : 'CONFIRMED');
     let receiptImageUrl: string | null = null;
 
     if (feeNum > 0 && paymentOption === 'GCASH') {
@@ -734,8 +812,8 @@ export async function registerForEventAction(
         revalidatePath(`/events/${event.slug}`);
         revalidatePath('/portal');
         revalidatePath('/admin/events');
-      } catch (cacheErr: any) {
-        logger.warn({ error: cacheErr?.message }, 'Cache revalidation warning');
+      } catch (cacheErr) {
+        logger.warn({ error: getErrorMessage(cacheErr) }, 'Cache revalidation warning');
       }
 
       return {
@@ -747,28 +825,25 @@ export async function registerForEventAction(
             ? 'Registration confirmed! You can settle your registration fee at the venue desk upon arrival.'
             : 'Registration confirmed! We look forward to seeing you at the gathering.',
       };
-    } catch (error: any) {
-      logger.error({ error: error?.message, eventId: event.id, userId: profile.id }, 'Failed to save event registration');
+    } catch (error) {
+      const message = getErrorMessage(error);
+      logger.error({ error: message, eventId: event.id, userId: profile.id }, 'Failed to save event registration');
       return {
         success: false,
-        error: error?.message?.includes('unique')
+        error: message.includes('unique')
           ? 'You are already registered for this event.'
           : 'Failed to complete registration. Please try again.',
       };
     }
-  } catch (err: any) {
-    if (
-      err?.digest === 'DYNAMIC_SERVER_USAGE' ||
-      err?.message?.includes('DYNAMIC_SERVER_USAGE') ||
-      err?.digest?.startsWith('NEXT_') ||
-      err?.message === 'NEXT_REDIRECT'
-    ) {
+  } catch (err) {
+    if (isNextError(err)) {
       throw err;
     }
-    logger.error({ error: err?.message || err }, 'Unhandled error in registerForEventAction');
+    const message = getErrorMessage(err);
+    logger.error({ error: message }, 'Unhandled error in registerForEventAction');
     return {
       success: false,
-      error: err?.message || 'An unexpected error occurred during registration. Please try again.',
+      error: message || 'An unexpected error occurred during registration. Please try again.',
     };
   }
 }

@@ -60,35 +60,16 @@ function safeCache<T extends (...args: any[]) => Promise<any>>(
 }
 
 /**
- * Cached Published Events for Public Feed
- * Revalidated on-demand when admin updates events or every 1 hour (3600s).
+ * Public event schedules must reflect edits immediately.
  */
-export const getCachedPublishedEvents = safeCache(
-  async (): Promise<Event[]> => {
-    return getPublishedEvents();
-  },
-  ['cached-published-events'],
-  {
-    revalidate: 3600,
-    tags: [CACHE_TAGS.events, CACHE_TAGS.eventsPublished],
-  }
-);
+export const getCachedPublishedEvents = (): Promise<Event[]> => getPublishedEvents();
 
 /**
  * Cached Event by Slug for Public Detail View
  * Revalidated on-demand when event is updated or every 1 hour (3600s).
  */
 export function getCachedEventBySlug(slug: string): Promise<Event | null> {
-  return safeCache(
-    async (): Promise<Event | null> => {
-      return getEventBySlug(slug);
-    },
-    [`cached-event-${slug}`],
-    {
-      revalidate: 3600,
-      tags: [CACHE_TAGS.events, CACHE_TAGS.event(slug)],
-    }
-  )();
+  return getEventBySlug(slug);
 }
 
 /**
@@ -266,4 +247,3 @@ export function invalidateCacheTag(...tags: string[]): void {
     }
   }
 }
-

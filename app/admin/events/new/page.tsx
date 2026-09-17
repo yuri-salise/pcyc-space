@@ -9,21 +9,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { createEventAction, AdminEventActionState } from '@/app/actions/events';
+import { formatDateForDateInput, formatTimeForTimeInput } from '@/lib/utils';
 import { AdminScheduleBuilder } from '@/components/events/admin-schedule-builder';
 import { AdminChecklistBuilder } from '@/components/events/admin-checklist-builder';
 import {
   Calendar,
-  ArrowLeft,
   AlertCircle,
-  Sparkles,
   Wand2,
-  MapPin,
-  Clock,
-  Luggage,
-  CalendarDays,
   FileText,
+  Sparkles,
+  Clock,
+  MapPin,
   Info,
-  CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 
 const initialState: AdminEventActionState = {
@@ -36,6 +34,27 @@ export default function NewEventPage() {
   const [slug, setSlug] = useState('');
   const [isManuallyEdited, setIsManuallyEdited] = useState(false);
   const [fee, setFee] = useState('0');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('08:00');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('17:00');
+  const [registrationDeadline, setRegistrationDeadline] = useState('');
+
+  const [prevPayload, setPrevPayload] = useState(state?.payload);
+  if (state?.payload && state.payload !== prevPayload) {
+    setPrevPayload(state.payload);
+    if (state.payload.startDate) {
+      setStartDate(formatDateForDateInput(state.payload.startDate));
+      setStartTime(formatTimeForTimeInput(state.payload.startDate));
+    }
+    if (state.payload.endDate) {
+      setEndDate(formatDateForDateInput(state.payload.endDate));
+      setEndTime(formatTimeForTimeInput(state.payload.endDate));
+    }
+    if (state.payload.registrationDeadline) {
+      setRegistrationDeadline(formatDateForDateInput(state.payload.registrationDeadline));
+    }
+  }
 
   // Helper to generate clean URL slug
   const generateSlug = (text: string) => {
@@ -245,8 +264,8 @@ export default function NewEventPage() {
                       label="Start Date"
                       name="startDate"
                       type="date"
-                      key={state?.payload?.startDate || 'sd'}
-                      defaultValue={state?.payload?.startDate || ''}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                       required
                       error={state?.fieldErrors?.startDate?.[0]}
                     />
@@ -254,8 +273,8 @@ export default function NewEventPage() {
                       label="Start Time"
                       name="startTime"
                       type="time"
-                      key={state?.payload?.startTime || 'st'}
-                      defaultValue={state?.payload?.startTime || '08:00'}
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
                       required
                     />
                   </div>
@@ -271,8 +290,8 @@ export default function NewEventPage() {
                       label="End Date"
                       name="endDate"
                       type="date"
-                      key={state?.payload?.endDate || 'ed'}
-                      defaultValue={state?.payload?.endDate || ''}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
                       required
                       error={state?.fieldErrors?.endDate?.[0]}
                     />
@@ -280,10 +299,30 @@ export default function NewEventPage() {
                       label="End Time"
                       name="endTime"
                       type="time"
-                      key={state?.payload?.endTime || 'et'}
-                      defaultValue={state?.payload?.endTime || '17:00'}
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Registration Deadline */}
+                <div className="p-4 rounded-2xl bg-[#f8f4e3]/40 dark:bg-[#252e1f]/40 border border-[#e6dfcb] dark:border-[#323d2b] space-y-3 md:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#9a6423] dark:text-[#f0be7c] block">
+                    Registration Cut-off Deadline (Optional)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                    <Input
+                      label="Deadline Date"
+                      name="registrationDeadline"
+                      type="date"
+                      value={registrationDeadline}
+                      onChange={(e) => setRegistrationDeadline(e.target.value)}
+                      error={state?.fieldErrors?.registrationDeadline?.[0]}
+                    />
+                    <p className="text-[11px] text-[#707666] dark:text-[#a3ab98] pt-1">
+                      Last day delegates can sign up on PCYC Space. Leave blank if registration remains open until the gathering begins.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -360,14 +399,18 @@ export default function NewEventPage() {
             {/* SECTION 5: DYNAMIC ITINERARY BUILDER */}
             {/* ======================================================== */}
             <div className="p-5 sm:p-6 rounded-3xl border border-[#e6dfcb] dark:border-[#323d2b] bg-[#f8f4e3]/30 dark:bg-[#1b2117]/30">
-              <AdminScheduleBuilder />
+              <AdminScheduleBuilder
+                initialSchedule={state?.payload?.schedule}
+                startDate={startDate}
+                endDate={endDate}
+              />
             </div>
 
             {/* ======================================================== */}
             {/* SECTION 6: DYNAMIC PACKING CHECKLIST BUILDER */}
             {/* ======================================================== */}
             <div className="p-5 sm:p-6 rounded-3xl border border-[#e6dfcb] dark:border-[#323d2b] bg-[#f8f4e3]/30 dark:bg-[#1b2117]/30">
-              <AdminChecklistBuilder />
+              <AdminChecklistBuilder initialChecklist={state?.payload?.checklist} />
             </div>
 
             {/* ======================================================== */}

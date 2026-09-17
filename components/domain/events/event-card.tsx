@@ -5,8 +5,8 @@ import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/
 import { Badge } from '@/components/ui/badge';
 import { DateBadge } from '@/components/molecules/date-badge';
 import { InteractiveCard } from '@/components/ui/interactive-card';
-import { formatDate } from '@/lib/utils';
-import { MapPin, Users, ArrowRight, HourglassMedium, CheckCircle } from '@phosphor-icons/react/dist/ssr';
+import { formatEventSchedule } from '@/lib/utils';
+import { MapPin, Users, ArrowRight } from '@phosphor-icons/react/dist/ssr';
 import type { Event } from '@/lib/db/schema/events';
 
 export interface EventCardProps {
@@ -107,8 +107,8 @@ export function EventCard({ event, showStatusBadge = true }: EventCardProps) {
       </CardContent>
 
       <CardFooter className="pt-3.5 border-t border-[#e6dfcb]/60 dark:border-[#323d2b]/60 flex items-center justify-between text-xs font-semibold">
-        <span className="text-[#8a9180] dark:text-[#8a9180]">
-          {formatDate(event.startDate)}
+        <span className="text-[#8a9180] dark:text-[#8a9180] truncate max-w-[65%]">
+          {formatEventSchedule(event.startDate, event.endDate)}
         </span>
         <Link
           href={`/events/${event.slug}`}

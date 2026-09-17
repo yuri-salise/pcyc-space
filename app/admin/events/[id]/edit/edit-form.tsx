@@ -40,6 +40,31 @@ export function EditEventForm({ event }: EditEventFormProps) {
   const [slug, setSlug] = useState(event.slug);
   const [isManuallyEdited, setIsManuallyEdited] = useState(false);
   const [fee, setFee] = useState(event.registrationFee ? String(Number(event.registrationFee)) : '0');
+  const [startDate, setStartDate] = useState(formatDateForDateInput(event.startDate));
+  const [startTime, setStartTime] = useState(formatTimeForTimeInput(event.startDate));
+  const [endDate, setEndDate] = useState(formatDateForDateInput(event.endDate));
+  const [endTime, setEndTime] = useState(formatTimeForTimeInput(event.endDate));
+  const [registrationDeadline, setRegistrationDeadline] = useState(
+    event.registrationDeadline ? formatDateForDateInput(event.registrationDeadline) : ''
+  );
+
+  const [prevPayload, setPrevPayload] = useState(state?.payload);
+  if (state?.payload && state.payload !== prevPayload) {
+    setPrevPayload(state.payload);
+    if (state.payload.startDate) {
+      setStartDate(formatDateForDateInput(state.payload.startDate));
+      setStartTime(formatTimeForTimeInput(state.payload.startDate));
+    }
+    if (state.payload.endDate) {
+      setEndDate(formatDateForDateInput(state.payload.endDate));
+      setEndTime(formatTimeForTimeInput(state.payload.endDate));
+    }
+    if (state.payload.registrationDeadline !== undefined) {
+      setRegistrationDeadline(
+        state.payload.registrationDeadline ? formatDateForDateInput(state.payload.registrationDeadline) : ''
+      );
+    }
+  }
 
   // Helper to generate clean URL slug
   const generateSlug = (text: string) => {
@@ -75,6 +100,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
       <form action={formAction}>
         {/* Hidden identifier inputs */}
         <input type="hidden" name="eventId" value={event.id} />
+        <input type="hidden" name="existingSlug" value={event.slug} />
         <input type="hidden" name="existingBannerUrl" value={event.bannerUrl || ''} />
 
         {/* Header Banner */}
@@ -254,7 +280,8 @@ export function EditEventForm({ event }: EditEventFormProps) {
                     label="Start Date"
                     name="startDate"
                     type="date"
-                    defaultValue={formatDateForDateInput(event.startDate)}
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                     required
                     error={state?.fieldErrors?.startDate?.[0]}
                   />
@@ -262,7 +289,8 @@ export function EditEventForm({ event }: EditEventFormProps) {
                     label="Start Time"
                     name="startTime"
                     type="time"
-                    defaultValue={formatTimeForTimeInput(event.startDate)}
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
                     required
                   />
                 </div>
@@ -278,7 +306,8 @@ export function EditEventForm({ event }: EditEventFormProps) {
                     label="End Date"
                     name="endDate"
                     type="date"
-                    defaultValue={formatDateForDateInput(event.endDate)}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
                     required
                     error={state?.fieldErrors?.endDate?.[0]}
                   />
@@ -286,9 +315,30 @@ export function EditEventForm({ event }: EditEventFormProps) {
                     label="End Time"
                     name="endTime"
                     type="time"
-                    defaultValue={formatTimeForTimeInput(event.endDate)}
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
                     required
                   />
+                </div>
+              </div>
+
+              {/* Registration Deadline */}
+              <div className="p-4 rounded-2xl bg-[#f8f4e3]/40 dark:bg-[#252e1f]/40 border border-[#e6dfcb] dark:border-[#323d2b] space-y-3 md:col-span-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#9a6423] dark:text-[#f0be7c] block">
+                  Registration Cut-off Deadline (Optional)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <Input
+                    label="Deadline Date"
+                    name="registrationDeadline"
+                    type="date"
+                    value={registrationDeadline}
+                    onChange={(e) => setRegistrationDeadline(e.target.value)}
+                    error={state?.fieldErrors?.registrationDeadline?.[0]}
+                  />
+                  <p className="text-[11px] text-[#707666] dark:text-[#a3ab98] pt-1">
+                    Last day delegates can sign up on PCYC Space. Leave blank if registration remains open until the gathering begins.
+                  </p>
                 </div>
               </div>
             </div>
@@ -363,14 +413,18 @@ export function EditEventForm({ event }: EditEventFormProps) {
           {/* SECTION 5: DYNAMIC ITINERARY BUILDER */}
           {/* ======================================================== */}
           <div className="p-5 sm:p-6 rounded-3xl border border-[#e6dfcb] dark:border-[#323d2b] bg-[#f8f4e3]/30 dark:bg-[#1b2117]/30">
-            <AdminScheduleBuilder initialSchedule={event.schedule as ScheduleItem[] | null} />
+            <AdminScheduleBuilder
+              initialSchedule={(state?.payload?.schedule ? state.payload.schedule : event.schedule) as ScheduleItem[] | null}
+              startDate={startDate}
+              endDate={endDate}
+            />
           </div>
 
           {/* ======================================================== */}
           {/* SECTION 6: DYNAMIC PACKING CHECKLIST BUILDER */}
           {/* ======================================================== */}
           <div className="p-5 sm:p-6 rounded-3xl border border-[#e6dfcb] dark:border-[#323d2b] bg-[#f8f4e3]/30 dark:bg-[#1b2117]/30">
-            <AdminChecklistBuilder initialChecklist={event.checklist as string[] | null} />
+            <AdminChecklistBuilder initialChecklist={(state?.payload?.checklist ? state.payload.checklist : event.checklist) as string[] | null} />
           </div>
 
           {/* ======================================================== */}

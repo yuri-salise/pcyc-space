@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, CheckSquare, Luggage } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles, Luggage } from 'lucide-react';
 
 interface AdminChecklistBuilderProps {
-  initialChecklist?: string[] | null;
+  initialChecklist?: string[] | string | null;
 }
 
 const SUGGESTED_CHECKLIST: string[] = [
@@ -32,12 +32,15 @@ const QUICK_CHIPS: string[] = [
 ];
 
 export function AdminChecklistBuilder({ initialChecklist }: AdminChecklistBuilderProps) {
-  // CRITICAL FIX: Explicitly check if initialChecklist is an array (even if empty []).
-  // If array is passed (even []), use it as-is so deleted items DO NOT come back.
-  // If undefined/null (new event), start with empty array [] so admin is in full control.
   const [checklist, setChecklist] = useState<string[]>(() => {
     if (Array.isArray(initialChecklist)) {
       return initialChecklist;
+    }
+    if (typeof initialChecklist === 'string') {
+      try {
+        const parsed = JSON.parse(initialChecklist);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
     }
     return [];
   });

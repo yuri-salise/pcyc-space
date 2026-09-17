@@ -7,10 +7,10 @@ import { getUserEventRegistration } from '@/lib/db/queries/events';
 import { getCachedEventBySlug, getCachedPaymentSettings } from '@/lib/db/queries/cached';
 import { getCurrentUserProfile } from '@/lib/db/queries/users';
 import { formatPHP, formatEventSchedule } from '@/lib/utils';
-import { Calendar, MapPin, Users, CheckCircle, ArrowLeft, Sparkle, HandHeart, Info, Quotes } from '@phosphor-icons/react/dist/ssr';
+import { Calendar, MapPin, Users, CheckCircle, ArrowLeft, HandHeart, Quotes } from '@phosphor-icons/react/dist/ssr';
 import { EventRegistrationBox } from '@/components/domain/events/event-registration-box';
 import { EventCountdownClock } from '@/components/events/event-countdown-clock';
-import { EventScheduleTimeline } from '@/components/events/event-schedule-timeline';
+import { EventScheduleTimeline, ScheduleItem } from '@/components/events/event-schedule-timeline';
 import { EventPrepChecklist } from '@/components/events/event-prep-checklist';
 import { ScrollReveal, StaggerContainer, StaggerItem } from '@/components/ui/scroll-reveal';
 import { InteractiveCard } from '@/components/ui/interactive-card';
@@ -228,12 +228,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
               {/* 3-Day Itinerary Component */}
               <ScrollReveal>
-                <EventScheduleTimeline schedule={event.schedule as any} />
+                <EventScheduleTimeline schedule={event.schedule as ScheduleItem[] | null} startDate={event.startDate} />
               </ScrollReveal>
 
               {/* Preparation Checklist */}
               <ScrollReveal>
-                <EventPrepChecklist checklist={event.checklist as any} />
+                <EventPrepChecklist checklist={event.checklist as string[] | null} />
               </ScrollReveal>
 
             </div>
