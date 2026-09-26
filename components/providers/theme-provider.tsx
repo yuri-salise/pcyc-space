@@ -17,7 +17,6 @@ const STORAGE_KEY = 'pcyc-theme-preference';
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
-  const [mounted, setMounted] = useState(false);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -29,7 +28,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Local storage not available
     }
-    setMounted(true);
   }, []);
 
   // Update DOM and resolved theme whenever theme changes or system preference changes

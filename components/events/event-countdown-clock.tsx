@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, HourglassMedium, Sparkle, CalendarCheck } from '@phosphor-icons/react';
+import { HourglassMedium, CalendarCheck } from '@phosphor-icons/react';
 
 interface EventCountdownClockProps {
   startDate: string | Date;

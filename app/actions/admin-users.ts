@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/db';
-import { profiles, type Profile, type UserRole, type UserStatus } from '@/lib/db/schema/users';
+import { profiles, type UserRole, type UserStatus } from '@/lib/db/schema/users';
 import { auditLogs } from '@/lib/db/schema/audit-logs';
 import { getCurrentUserProfile, getUserProfileById } from '@/lib/db/queries/users';
 import {
@@ -14,7 +14,7 @@ import {
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 import { CACHE_TAGS, invalidateCacheTag } from '@/lib/db/queries/cached';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
 export interface AdminUserActionResult {

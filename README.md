@@ -47,8 +47,6 @@
 
 For an in-depth breakdown of the system architecture, database schema, folder structure, UI system, and concurrency mechanics, please refer to the **[Architecture & Developer Documentation](DOCUMENTATION.md)**.
 
-For a ready-to-use visual brief for generating a PCYC Space infographic, see **[Infographic Prompt](INFOGRAPHIC_PROMPT.md)**.
-
 ---
 
 ## ✨ Features
@@ -104,7 +102,7 @@ Buyer places order → Sends payment via the configured payment provider
 > No payment gateway fees. Every peso goes to the community.
 
 ### 📧 Transactional Email
-- Powered by **Nodemailer** with Gmail SMTP
+- Powered by **Nodemailer** with Brevo SMTP relay
 - Order confirmations with payment instructions
 - Receipt verification notifications (approved/rejected)
 - Event registration confirmations
@@ -125,7 +123,7 @@ Buyer places order → Sends payment via the configured payment provider
 | **Animation** | [Motion](https://motion.dev/) | Scroll reveals, interactive cards, and micro-interactions |
 | **Database** | [PostgreSQL](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/) | Type-safe schema, relational queries, migrations |
 | **Auth & Storage** | [Supabase](https://supabase.com/) | Authentication, file storage, Row Level Security |
-| **Email** | [Nodemailer](https://nodemailer.com/) + Gmail SMTP | Transactional email delivery with HTML templates |
+| **Email** | [Nodemailer](https://nodemailer.com/) + Brevo SMTP | Transactional email delivery with HTML templates |
 | **Markdown** | [react-markdown](https://github.com/remarkjs/react-markdown) + [remark-gfm](https://github.com/remarkjs/remark-gfm) | Rich text rendering with GitHub Flavored Markdown |
 | **Validation** | [Zod 4](https://zod.dev/) | Runtime schema validation for forms and environment |
 | **Icons** | [Lucide React](https://lucide.dev/) + [Phosphor Icons](https://phosphoricons.com/) | Beautiful, consistent dual icon libraries |
@@ -247,7 +245,7 @@ pcyc-space/
 - **Node.js** ≥ 20
 - **npm** (included with Node)
 - A **Supabase** project ([create one free](https://supabase.com/dashboard))
-- A **Gmail account** with [App Password](https://myaccount.google.com/apppasswords) for SMTP email
+- A **Brevo account** with [SMTP Key](https://www.brevo.com) for SMTP relay
 
 ### 1. Clone & Install
 
@@ -278,9 +276,11 @@ SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 DATABASE_URL="postgresql://postgres.[ref]:[pass]@...pooler.supabase.com:6543/postgres"
 DIRECT_URL="postgresql://postgres.[ref]:[pass]@...pooler.supabase.com:5432/postgres"
 
-# Email (Gmail SMTP)
-SMTP_USER="your.email@gmail.com"
-SMTP_PASSWORD="your-16-char-app-password"
+# Email (Brevo SMTP)
+SMTP_HOST="smtp-relay.brevo.com"
+SMTP_PORT="587"
+SMTP_USER="your.brevo.login@email.com"
+SMTP_PASSWORD="your-brevo-smtp-key"
 EMAIL_FROM="PCYC Space <notifications@yourdomain.com>"
 EMAIL_REPLY_TO="admin@yourdomain.com"
 ```
@@ -289,6 +289,7 @@ EMAIL_REPLY_TO="admin@yourdomain.com"
 
 ```bash
 npx drizzle-kit push      # Apply schema to your database
+npm run apply:rls          # Apply Row-Level Security policies and default privileges
 npm run create:admin       # Create your first admin account
 ```
 
@@ -313,6 +314,7 @@ Open [http://localhost:3000](http://localhost:3000) — you're live! 🎉
 | `npm run test` | Run unit & integration tests |
 | `npm run create:admin` | Promote a user to admin role |
 | `npm run sync:profiles` | Sync Supabase auth users to profiles table |
+| `npm run apply:rls` | Apply database Row-Level Security policies and default privileges |
 
 ---
 
@@ -324,7 +326,7 @@ PCYC Space is designed for **zero-cost deployment** on free tiers:
 |---|---|---|
 | **Vercel** | Hobby (Free) | Next.js hosting with edge functions |
 | **Supabase** | Free | Auth, PostgreSQL database, file storage |
-| **Gmail SMTP** | Free | Transactional email delivery via Nodemailer |
+| **Brevo SMTP** | Free | Transactional email delivery via Nodemailer |
 
 ### Deploy to Vercel
 
@@ -388,7 +390,7 @@ graph TB
         SB_AUTH[Supabase Auth<br/>JWT Sessions]
         SB_STORAGE[Supabase Storage<br/>Receipts & Images]
         DB[(PostgreSQL<br/>Drizzle ORM)]
-        SMTP[Nodemailer<br/>Gmail SMTP]
+        SMTP[Nodemailer<br/>Brevo SMTP]
     end
 
     subgraph Security["🔒 Security Layer"]
@@ -495,7 +497,7 @@ erDiagram
     payment_receipts {
         uuid id PK
         string imageUrl
-        enum method "GCASH | MAYA | PALAWAN_PAY"
+        enum method "GCASH | PALAWAN_PAY | BANK_TRANSFER | MAYA | OTHER"
         enum status "PENDING | APPROVED | REJECTED"
     }
 

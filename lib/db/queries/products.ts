@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { db } from '@/lib/db';
 import { products, type Product } from '@/lib/db/schema/products';
-import { eq, desc, and, or } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
 /**

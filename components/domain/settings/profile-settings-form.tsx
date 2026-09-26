@@ -4,7 +4,7 @@ import React, { useActionState, useState } from 'react';
 import { updateProfileAction, type ProfileActionState } from '@/app/actions/profile';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/molecules/user-avatar';
-import { User, Mail, Phone, Church, Calendar, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Phone, Church, Calendar, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import type { Profile } from '@/lib/db/schema/users';
 import type { Ecclesia } from '@/lib/db/schema/ecclesias';
 import { formatDateForDateInput } from '@/lib/utils';

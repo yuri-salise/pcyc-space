@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckSquare, Square, Sparkle, Suitcase, CheckCircle } from '@phosphor-icons/react';
+import { Square, Suitcase, CheckCircle } from '@phosphor-icons/react';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 
 const CHECKLIST_ITEMS = [

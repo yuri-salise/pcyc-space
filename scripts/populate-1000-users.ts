@@ -167,7 +167,7 @@ async function populateUsers() {
       const phoneNumber = generatePhoneNumber();
 
       // Generate unique email
-      let emailClean = `${firstName.toLowerCase().replace(/\s+/g, '.')}.${lastName.toLowerCase().replace(/\s+/g, '')}`;
+      const emailClean = `${firstName.toLowerCase().replace(/\s+/g, '.')}.${lastName.toLowerCase().replace(/\s+/g, '')}`;
       let candidateEmail = `${emailClean}${getRandomInt(10, 999)}@${getRandomItem(emailDomains)}`;
       let attempts = 0;
       while (usedEmails.has(candidateEmail.toLowerCase()) && attempts < 20) {

@@ -2,24 +2,21 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { UserAvatar } from '@/components/molecules/user-avatar';
 import type { ProductReviewWithAuthor, ProductRatingSummary } from '@/lib/db/queries/reviews';
 import {
   Star,
-  ShieldCheck,
   MessageSquare,
-  Sparkles,
   ShoppingBag,
   CheckCircle2,
 } from 'lucide-react';
 
 interface ProductReviewsSectionProps {
-  productId: string;
-  productName: string;
+  productId?: string;
+  productName?: string;
   ratingSummary: ProductRatingSummary;
   reviews: ProductReviewWithAuthor[];
   isAuthenticated: boolean;
@@ -28,8 +25,8 @@ interface ProductReviewsSectionProps {
 const PAGE_SIZE = 6;
 
 export function ProductReviewsSection({
-  productId,
-  productName,
+  productId: _productId,
+  productName: _productName,
   ratingSummary,
   reviews,
   isAuthenticated,

@@ -109,7 +109,7 @@ export async function saveUploadedImage(
           auth: { autoRefreshToken: false, persistSession: false },
         });
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from(bucket)
           .upload(fileName, buffer, {
             contentType: mimeType || 'image/jpeg',

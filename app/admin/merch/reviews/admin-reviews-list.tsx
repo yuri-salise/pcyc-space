@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
-import { UserAvatar } from '@/components/molecules/user-avatar';
 import {
   adminToggleHideReviewAction,
   adminDeleteReviewAction,
@@ -22,9 +21,7 @@ import {
   EyeOff,
   Trash2,
   AlertTriangle,
-  CheckCircle2,
   ExternalLink,
-  MessageSquare,
 } from 'lucide-react';
 
 type AdminReviewItem = Awaited<ReturnType<typeof getAdminAllReviews>>[number];
@@ -35,7 +32,7 @@ interface AdminReviewsListProps {
 
 export function AdminReviewsList({ initialReviews }: AdminReviewsListProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [ratingFilter, setRatingFilter] = useState<string>('ALL');
 

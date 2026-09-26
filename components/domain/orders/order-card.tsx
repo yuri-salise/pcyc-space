@@ -13,7 +13,6 @@ import { formatCurrency } from '@/lib/utils';
 import type { OrderWithDetails } from '@/lib/db/queries/orders';
 import type { ProductReview } from '@/lib/db/schema/reviews';
 import {
-  ShoppingBag,
   Clock,
   CheckCircle2,
   Truck,
@@ -24,7 +23,6 @@ import {
   Eye,
   Star,
   MapPin,
-  Calendar,
 } from 'lucide-react';
 
 const ReviewModal = dynamic(

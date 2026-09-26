@@ -18,7 +18,6 @@ import {
   Copy,
 } from '@phosphor-icons/react';
 import { useToast } from '@/components/ui/toast';
-import { InteractiveCard } from '@/components/ui/interactive-card';
 import 'leaflet/dist/leaflet.css';
 
 interface EcclesiasMapViewProps {
@@ -63,91 +62,13 @@ export function EcclesiasMapView({ ecclesias }: EcclesiasMapViewProps) {
     });
   }, [ecclesias, selectedRegion, searchQuery]);
 
-  // Initialize Leaflet Map
-  useEffect(() => {
-    if (typeof window === 'undefined' || !mapContainerRef.current || mapInstanceRef.current) return;
-
-    let isMounted = true;
-
-    async function initMap() {
-      const L = await import('leaflet');
-
-      if (!isMounted || !mapContainerRef.current || mapInstanceRef.current) return;
-
-      // Fix default Leaflet asset URLs
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
-      // Create Leaflet Map
-      const map = L.map(mapContainerRef.current, {
-        center: [REGION_CENTERS.ALL.lat, REGION_CENTERS.ALL.lng],
-        zoom: REGION_CENTERS.ALL.zoom,
-        zoomControl: false,
-        attributionControl: true,
-        scrollWheelZoom: true,
-      });
-
-      // Zoom Controls at Bottom Right
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-      // Standard OpenStreetMap Tiles (100% Free, No API Key Required)
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-
-      // Invalidate size immediately and with small delays to ensure all tiles render
-      map.invalidateSize();
-      setTimeout(() => map.invalidateSize(), 100);
-      setTimeout(() => map.invalidateSize(), 400);
-
-      renderMarkers(L, map);
-    }
-
-    initMap();
-
-    // Handle container resize
-    const handleResize = () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('resize', handleResize);
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  // Invalidate map size when mobile tab changes
-  useEffect(() => {
-    if (mobileTab === 'map' && mapInstanceRef.current) {
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 150);
-    }
-  }, [mobileTab]);
-
-  // Re-render markers when filter changes
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    import('leaflet').then((L) => {
-      renderMarkers(L, mapInstanceRef.current);
-    });
-  }, [filteredEcclesias]);
+  const copyEcclesiaDetails = (ecc: Ecclesia) => {
+    const textToCopy = `${ecc.name} (${ecc.region})\nAddress: ${ecc.address}, ${ecc.city}\nSchedule: ${ecc.meetingSchedule}${ecc.contactPerson ? `\nContact: ${ecc.contactPerson}` : ''}`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedId(ecc.id);
+    success(`${ecc.name} details copied to clipboard!`);
+    setTimeout(() => setCopiedId(null), 2500);
+  };
 
   const renderMarkers = (L: any, map: any) => {
     // Clear old markers
@@ -292,6 +213,92 @@ export function EcclesiasMapView({ ecclesias }: EcclesiasMapViewProps) {
     });
   };
 
+  // Initialize Leaflet Map
+  useEffect(() => {
+    if (typeof window === 'undefined' || !mapContainerRef.current || mapInstanceRef.current) return;
+
+    let isMounted = true;
+
+    async function initMap() {
+      const L = await import('leaflet');
+
+      if (!isMounted || !mapContainerRef.current || mapInstanceRef.current) return;
+
+      // Fix default Leaflet asset URLs
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+
+      // Create Leaflet Map
+      const map = L.map(mapContainerRef.current, {
+        center: [REGION_CENTERS.ALL.lat, REGION_CENTERS.ALL.lng],
+        zoom: REGION_CENTERS.ALL.zoom,
+        zoomControl: false,
+        attributionControl: true,
+        scrollWheelZoom: true,
+      });
+
+      // Zoom Controls at Bottom Right
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // Standard OpenStreetMap Tiles (100% Free, No API Key Required)
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+
+      // Invalidate size immediately and with small delays to ensure all tiles render
+      map.invalidateSize();
+      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => map.invalidateSize(), 400);
+
+      renderMarkers(L, map);
+    }
+
+    initMap();
+
+    // Handle container resize
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('resize', handleResize);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Invalidate map size when mobile tab changes
+  useEffect(() => {
+    if (mobileTab === 'map' && mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 150);
+    }
+  }, [mobileTab]);
+
+  // Re-render markers when filter changes
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    import('leaflet').then((L) => {
+      renderMarkers(L, mapInstanceRef.current);
+    });
+  }, [filteredEcclesias]);
+
   const handleFlyToRegion = (region: 'ALL' | 'Luzon' | 'Visayas' | 'Mindanao') => {
     setSelectedRegion(region);
     if (!mapInstanceRef.current) return;
@@ -321,14 +328,6 @@ export function EcclesiasMapView({ ecclesias }: EcclesiasMapViewProps) {
         marker.openPopup();
       }, 700);
     }
-  };
-
-  const copyEcclesiaDetails = (ecc: Ecclesia) => {
-    const textToCopy = `${ecc.name} (${ecc.region})\nAddress: ${ecc.address}, ${ecc.city}\nSchedule: ${ecc.meetingSchedule}${ecc.contactPerson ? `\nContact: ${ecc.contactPerson}` : ''}`;
-    navigator.clipboard.writeText(textToCopy);
-    setCopiedId(ecc.id);
-    success(`${ecc.name} details copied to clipboard!`);
-    setTimeout(() => setCopiedId(null), 2500);
   };
 
   return (

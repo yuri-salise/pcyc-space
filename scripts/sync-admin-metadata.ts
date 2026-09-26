@@ -17,7 +17,7 @@ async function syncAdmin() {
   const adminUser = users.find((u) => u.email === 'admin@pcyc.ph');
   if (adminUser) {
     console.log('Found admin user:', adminUser.id);
-    const { data: updated, error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
+    const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
       adminUser.id,
       {
         user_metadata: {

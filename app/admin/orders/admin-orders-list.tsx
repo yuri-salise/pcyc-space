@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFormStatus } from 'react-dom';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

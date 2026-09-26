@@ -1,17 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'motion/react';
 import { InteractiveCard } from '@/components/ui/interactive-card';
-import { Sparkle, ShieldCheck, HandHeart, MagnifyingGlassPlus, Image as ImageIcon } from '@phosphor-icons/react';
-import { Badge } from '@/components/ui/badge';
 
 interface ProductImageShowcaseProps {
   imageUrls: string[];
   productName: string;
   isPreorder?: boolean;
-  category: string;
+  category?: string;
 }
 
 const FALLBACK_IMAGE = '/images/logo/pcyc-transparent-logo.png';
@@ -20,7 +17,6 @@ export function ProductImageShowcase({
   imageUrls,
   productName,
   isPreorder,
-  category,
 }: ProductImageShowcaseProps) {
   // Sanitize image URLs list
   const validImages = Array.isArray(imageUrls)
@@ -31,16 +27,12 @@ export function ProductImageShowcase({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
 
-  // Reset selected image index if out of bounds
-  useEffect(() => {
-    if (selectedImageIndex >= images.length) {
-      setSelectedImageIndex(0);
-    }
-  }, [images.length, selectedImageIndex]);
+  // Derive bounded image index
+  const safeIndex = selectedImageIndex >= images.length ? 0 : selectedImageIndex;
 
-  const currentImage = failedImages[selectedImageIndex]
+  const currentImage = failedImages[safeIndex]
     ? FALLBACK_IMAGE
-    : images[selectedImageIndex] || FALLBACK_IMAGE;
+    : images[safeIndex] || FALLBACK_IMAGE;
 
   const isDataOrBlob = currentImage.startsWith('data:') || currentImage.startsWith('blob:');
 

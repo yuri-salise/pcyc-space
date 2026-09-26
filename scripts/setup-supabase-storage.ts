@@ -40,7 +40,7 @@ async function setupBuckets() {
       });
       console.log(`✅ Bucket "${bucket.id}" updated as PUBLIC.`);
     } else {
-      const { data, error } = await supabase.storage.createBucket(bucket.id, {
+      const { error } = await supabase.storage.createBucket(bucket.id, {
         public: bucket.public,
         fileSizeLimit: bucket.fileSizeLimit,
         allowedMimeTypes: bucket.allowedMimeTypes,

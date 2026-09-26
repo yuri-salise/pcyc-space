@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "tsx --test tests/**/*.test.ts",
     "create:admin": "tsx --env-file=.env.local scripts/create-admin.ts",
-    "sync:profiles": "tsx --env-file=.env.local scripts/sync-profiles.ts"
+    "sync:profiles": "tsx --env-file=.env.local scripts/sync-profiles.ts",
+    "apply:rls": "tsx --env-file=.env.local scripts/apply-rls-policies.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
