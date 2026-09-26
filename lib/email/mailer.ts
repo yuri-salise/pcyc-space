@@ -5,12 +5,15 @@ const log = createModuleLogger('email:mailer');
 
 const smtpUser = process.env.SMTP_USER;
 const smtpPassword = process.env.SMTP_PASSWORD;
+const smtpHost = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const smtpPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
+const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
 export const transporter = (smtpUser && smtpPassword)
   ? nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true, // use TLS
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
       auth: {
         user: smtpUser,
         pass: smtpPassword,
@@ -19,7 +22,7 @@ export const transporter = (smtpUser && smtpPassword)
   : null;
 
 if (transporter) {
-  log.info('Nodemailer (Gmail SMTP) client initialized successfully');
+  log.info({ host: smtpHost, port: smtpPort }, 'Nodemailer SMTP client initialized successfully');
 } else {
   log.warn('SMTP_USER or SMTP_PASSWORD missing. Email dispatch will be simulated.');
 }
