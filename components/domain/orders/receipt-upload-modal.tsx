@@ -4,11 +4,10 @@ import React, { useActionState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { uploadReceiptAction, ReceiptActionResult } from '@/app/actions/orders';
 import { formatCurrency } from '@/lib/utils';
-import { QrCode, UploadCloud, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { UploadCloud, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ReceiptUploadModalProps {
   isOpen: boolean;

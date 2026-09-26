@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion } from 'motion/react';
-import { Sparkle, Compass, BookOpen, Heart } from '@phosphor-icons/react';
+import { Sparkle, Compass, BookOpen } from '@phosphor-icons/react';
 import { springs } from '@/lib/motion';
 
 export function HeroEmblemShowcase() {

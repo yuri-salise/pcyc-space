@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PriceTag } from '@/components/molecules/price-tag';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { OrderWithDetails } from '@/lib/db/queries/orders';
-import { MapPin, User, Package, Truck, Receipt, Calendar, CreditCard } from 'lucide-react';
+import { User, Package, Truck, Receipt } from 'lucide-react';
 
 interface AdminOrderDetailsModalProps {
   order: OrderWithDetails | null;

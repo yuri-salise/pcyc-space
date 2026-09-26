@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { HandHeart, Sparkle, Compass, BookOpen, Confetti } from '@phosphor-icons/react';
+import { HandHeart, BookOpen } from '@phosphor-icons/react';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
 

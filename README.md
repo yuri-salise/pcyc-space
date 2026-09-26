@@ -47,8 +47,6 @@
 
 For an in-depth breakdown of the system architecture, database schema, folder structure, UI system, and concurrency mechanics, please refer to the **[Architecture & Developer Documentation](DOCUMENTATION.md)**.
 
-For a ready-to-use visual brief for generating a PCYC Space infographic, see **[Infographic Prompt](INFOGRAPHIC_PROMPT.md)**.
-
 ---
 
 ## ✨ Features
@@ -291,6 +289,7 @@ EMAIL_REPLY_TO="admin@yourdomain.com"
 
 ```bash
 npx drizzle-kit push      # Apply schema to your database
+npm run apply:rls          # Apply Row-Level Security policies and default privileges
 npm run create:admin       # Create your first admin account
 ```
 
@@ -315,6 +314,7 @@ Open [http://localhost:3000](http://localhost:3000) — you're live! 🎉
 | `npm run test` | Run unit & integration tests |
 | `npm run create:admin` | Promote a user to admin role |
 | `npm run sync:profiles` | Sync Supabase auth users to profiles table |
+| `npm run apply:rls` | Apply database Row-Level Security policies and default privileges |
 
 ---
 
@@ -497,7 +497,7 @@ erDiagram
     payment_receipts {
         uuid id PK
         string imageUrl
-        enum method "GCASH | MAYA | PALAWAN_PAY"
+        enum method "GCASH | PALAWAN_PAY | BANK_TRANSFER | MAYA | OTHER"
         enum status "PENDING | APPROVED | REJECTED"
     }
 

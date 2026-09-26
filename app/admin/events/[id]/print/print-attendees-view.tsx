@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { formatDate, formatCurrency, formatPHP, formatEventSchedule } from '@/lib/utils';
+import { formatCurrency, formatPHP, formatEventSchedule } from '@/lib/utils';
 import type { Event } from '@/lib/db/schema/events';
 import type { AttendeeWithProfile } from '@/lib/db/queries/events';
-import { Printer, ArrowLeft, Users, CheckCircle2, Clock, Search, MapPin, Calendar } from 'lucide-react';
+import { Printer, ArrowLeft, Search, MapPin, Calendar } from 'lucide-react';
 
 interface PrintAttendeesViewProps {
   event: Event;

@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { useTheme, Theme } from '@/components/providers/theme-provider';
 import { Sun, Moon, Laptop, Check } from 'lucide-react';
 
-export function ThemeSelector() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   const options: {
     id: Theme;

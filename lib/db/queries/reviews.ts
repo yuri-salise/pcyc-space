@@ -1,8 +1,7 @@
 import { db } from '@/lib/db';
 import { productReviews, type ProductReview } from '@/lib/db/schema/reviews';
-import { profiles, type Profile, type UserDesignation } from '@/lib/db/schema/users';
+import { profiles, type UserDesignation } from '@/lib/db/schema/users';
 import { products, type Product } from '@/lib/db/schema/products';
-import { orders, orderItems } from '@/lib/db/schema/orders';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { ScrollReveal, StaggerContainer, StaggerItem } from '@/components/ui/scroll-reveal';
 import { InteractiveCard } from '@/components/ui/interactive-card';
-import { ShoppingBag, QrCode, Receipt, Package, ArrowRight } from '@phosphor-icons/react';
+import { ShoppingBag, QrCode, Receipt, Package } from '@phosphor-icons/react';
 
 interface MerchStepGuideProps {
   paymentSettings: {

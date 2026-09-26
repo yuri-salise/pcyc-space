@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
-import { formatDate, formatEventSchedule } from '@/lib/utils';
+import { formatEventSchedule } from '@/lib/utils';
 import { deleteEventAction, archiveEventAction, unarchiveEventAction } from '@/app/actions/events';
 import type { Event } from '@/lib/db/schema/events';
 import {

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserProfile } from '@/lib/db/queries/users';
 import { getAdminAllReviews } from '@/lib/db/queries/reviews';
 import { AdminReviewsList } from './admin-reviews-list';
-import { ArrowLeft, MessageSquare, Star } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 

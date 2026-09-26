@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Ruler, X, CheckCircle, Info } from '@phosphor-icons/react';
-import { InteractiveCard } from '@/components/ui/interactive-card';
+import { Ruler, X, Info } from '@phosphor-icons/react';
 
 const SIZE_CHART = [
   { size: 'XS', widthCm: '46 cm', lengthCm: '66 cm', widthIn: '18 in', lengthIn: '26 in' },
