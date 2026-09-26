@@ -90,7 +90,7 @@ This safeguards against race conditions during high-demand event releases or lim
 
 Payment is intentionally manual. Admins configure the provider name, receiving account, and optional QR code in the admin dashboard. The same settings are rendered in the merchandise store, product checkout, and member receipt-upload modal. Members upload a screenshot and reference number; admins approve or reject the receipt.
 
-Transactional email uses **Nodemailer** through standard Gmail SMTP. HTML templates are dynamically compiled and sent for:
+Transactional email uses **Nodemailer** through Brevo SMTP relay. HTML templates are dynamically compiled and sent for:
 - Payment verifications.
 - Event registration confirmations.
 - Password resets & welcome onboarding.

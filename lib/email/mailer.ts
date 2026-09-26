@@ -42,7 +42,7 @@ export interface SendEmailResult {
 }
 
 /**
- * Transactional email sender using Nodemailer + Gmail SMTP.
+ * Transactional email sender using Nodemailer + Brevo SMTP relay.
  * Used for system notifications, welcome emails, and order receipts.
  */
 export async function sendEmail({

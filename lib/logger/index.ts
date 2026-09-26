@@ -28,7 +28,7 @@ export const logger = pino({
       'token',
       'secret',
       'SUPABASE_SERVICE_ROLE_KEY',
-      'RESEND_API_KEY',
+      'SMTP_PASSWORD',
     ],
     remove: true,
   },

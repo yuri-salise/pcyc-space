@@ -46,10 +46,10 @@ PCYC is the sole Christadelphian youth circle in the Philippines — unique by d
 - Member portal: profile management, order history, receipt upload
 - Admin dashboard: events CRUD, merch inventory, order/receipt verification queue, member management
 - Manual payment flow with receipt screenshot upload to private Supabase Storage
-- Transactional email via Nodemailer and Gmail SMTP (order confirmation, verification notices)
+- Transactional email via Nodemailer and Brevo SMTP relay (order confirmation, verification notices)
 
 **Constraints:**
-- Zero-cost operations on free tiers (Supabase, Vercel, and Gmail SMTP)
+- Zero-cost operations on free tiers (Supabase, Vercel, and Brevo SMTP relay)
 - No automated payment gateway yet; the current flow is manual receipt verification
 - No real-time chat or messaging — out of scope; members receive in-app notifications
 - Philippine Peso (PHP) currency only
