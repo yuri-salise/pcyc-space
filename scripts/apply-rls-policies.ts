@@ -25,8 +25,9 @@ async function applyRLSPolicies() {
       ALTER TABLE IF EXISTS public.event_registrations ENABLE ROW LEVEL SECURITY;
       ALTER TABLE IF EXISTS public.ecclesias ENABLE ROW LEVEL SECURITY;
       ALTER TABLE IF EXISTS public.site_settings ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE IF EXISTS public.product_reviews ENABLE ROW LEVEL SECURITY;
     `);
-    console.log('   ✅ RLS enabled on all 9 public tables.');
+    console.log('   ✅ RLS enabled on all 10 public tables.');
 
     // 2. Helper function to drop existing policies idempotently
     console.log('\n2️⃣ Creating idempotent security policies...');
@@ -301,13 +302,33 @@ async function applyRLSPolicies() {
     `);
     console.log('   ✅ All RLS security policies successfully created.');
 
-    // 3. Verify RLS status from pg_tables
-    console.log('\n3️⃣ Verifying RLS status across PostgreSQL tables...');
+    // 3. Explicit Data API Grants and Default Privileges (Supabase Oct 30 Compliance)
+    console.log('\n3️⃣ Granting Data API role access & setting default privileges (anon, authenticated, service_role)...');
+    await client.unsafe(`
+      -- Grant schema usage
+      GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+      -- Grant existing tables access
+      GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+      GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated, service_role;
+      GRANT ALL ON ALL ROUTINES IN SCHEMA public TO authenticated, service_role;
+
+      -- Future-proof all newly created tables/sequences in public schema
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated, service_role;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated, service_role;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO authenticated, service_role;
+    `);
+    console.log('   ✅ Explicit Data API grants and default privileges applied.');
+
+    // 4. Verify RLS status from pg_tables
+    console.log('\n4️⃣ Verifying RLS status across PostgreSQL tables...');
     const rlsStatus = await client`
       SELECT tablename, rowsecurity 
       FROM pg_tables 
       WHERE schemaname = 'public' 
-        AND tablename IN ('profiles', 'events', 'products', 'orders', 'order_items', 'payment_receipts', 'event_registrations', 'ecclesias', 'site_settings', 'notifications', 'audit_logs');
+        AND tablename IN ('profiles', 'events', 'products', 'orders', 'order_items', 'payment_receipts', 'event_registrations', 'ecclesias', 'site_settings', 'notifications', 'audit_logs', 'product_reviews');
     `;
 
     console.table(rlsStatus);
